@@ -1,0 +1,4 @@
+delete_duplicate_meta_items: true
+clear_inventory: true
+change_hand: true
+delete_items_on_death: false

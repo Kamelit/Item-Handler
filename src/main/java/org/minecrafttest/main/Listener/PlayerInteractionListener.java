@@ -63,10 +63,7 @@ public class PlayerInteractionListener implements Listener {
 
     public void loadAllResources(){
         worldConfig = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "blocks_events/world" + ".yml"));
-        String executor = plugin.getExecutor().getConfigName();
-        String configName = !Objects.equals(executor, "") ? "profiles/"+executor : "profiles/subConfig";
-        yamlConfig = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), configName + ".yml"));
-        if (yamlConfig.getKeys(false).isEmpty()) {return;}
+        if (getConfigurationName()) return;
         if (yamlConfig.contains("items")) {
             ConfigurationSection itemsConfig = yamlConfig.getConfigurationSection("items");
             assert itemsConfig != null;
@@ -187,6 +184,13 @@ public class PlayerInteractionListener implements Listener {
         }
     }
 
+    private boolean getConfigurationName() {
+        String executor = plugin.getExecutor().getConfigName();
+        String configName = !Objects.equals(executor, "") ? "profiles/"+executor : "profiles/subConfig";
+        yamlConfig = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), configName + ".yml"));
+        return yamlConfig.getKeys(false).isEmpty();
+    }
+
     public void runThreads() {
         for (Map.Entry<Runnable, Long> entry : MapTask.entrySet()) {
             Runnable task = entry.getKey();
@@ -218,10 +222,7 @@ public class PlayerInteractionListener implements Listener {
                 }
             }
         }
-        String executor = plugin.getExecutor().getConfigName();
-        String configName = !Objects.equals(executor, "") ? "profiles/"+executor : "profiles/subConfig";
-        yamlConfig = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), configName + ".yml"));
-        if (yamlConfig.getKeys(false).isEmpty()) {return;}
+        if (getConfigurationName()) return;
         if (yamlConfig.contains("items")) {
             ConfigurationSection itemsConfig = yamlConfig.getConfigurationSection("items");
             assert itemsConfig != null;

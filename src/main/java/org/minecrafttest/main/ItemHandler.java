@@ -32,7 +32,7 @@ public class ItemHandler extends JavaPlugin {
         PluginCommand command = Objects.requireNonNull(getCommand("ItemHandler"));
         command.setAliases(aliases);
         command.setExecutor(executor);
-        listener.loadAllIntervalItems();
+        listener.loadAllResources();
         listener.runThreads();
         Component enableMessage = Component.text()
                 .append(Component.text("[" + this.getName() + "] ", NamedTextColor.GREEN))

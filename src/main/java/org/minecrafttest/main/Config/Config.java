@@ -1,14 +1,16 @@
 package org.minecrafttest.main.Config;
 
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.minecrafttest.main.ItemHandler;
 
 import java.io.File;
-public class Config {
-    private final ItemHandler plugin;
+import java.io.IOException;
+import java.util.logging.Level;
 
-    public Config() {
-        this.plugin = ItemHandler.getPlugin();
-    }
+//Configurations_yml's
+public class Config {
+    private final ItemHandler plugin = ItemHandler.getPlugin();
+
 
     public boolean getClearInventory(){
         return this.plugin.getConfig().getBoolean("clear_inventory",false);
@@ -21,6 +23,7 @@ public class Config {
     public boolean getDeleteDuplicateMetaItems(){
         return this.plugin.getConfig().getBoolean("delete_duplicate_meta_items",true);
     }
+
 
     public void loadConfig() {
         File dataFolder = plugin.getDataFolder();
@@ -37,11 +40,25 @@ public class Config {
             plugin.saveResource("config.yml", false);
         }
 
-        File subConfigFile = new File(dataFolder + File.separator + "profiles", "profiles/subConfig.yml");
+        File subConfigFile = new File(dataFolder, "profiles/subConfig.yml");
         if (!subConfigFile.exists()){
             plugin.saveResource("profiles/subConfig.yml",false);
         }
 
+        File worldFile = new File(new File(plugin.getDataFolder(), "blocks_events"), "world.yml");
+        if (!worldFile.exists()) {
+            plugin.saveResource("blocks_events/world.yml", false);
+        }
+
         plugin.reloadConfig();
     }
+
+    public void saveWorldConfig(YamlConfiguration yml, File file) {
+        try {
+            yml.save(file);
+        } catch (IOException e) {
+            plugin.getLogger().log(Level.SEVERE, "An error occurred while saving world configuration!", e);
+        }
+    }
+
 }

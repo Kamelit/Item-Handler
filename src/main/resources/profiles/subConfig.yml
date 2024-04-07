@@ -1,3 +1,5 @@
+load_inventory_only_player: true
+
 items:
   clock:
     shotBow: false

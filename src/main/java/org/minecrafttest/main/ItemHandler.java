@@ -13,13 +13,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-//CommandItemHandler
-public class CommandItemHandler extends JavaPlugin {
-    private static CommandItemHandler instance;
+//ItemHandler
+public class ItemHandler extends JavaPlugin {
+    private static ItemHandler instance;
     private Config pluginConfig;
     private PlayerInteractionListener listener;
     private GameCommandExecutor executor;
-
     @Override
     public void onEnable() {
         instance = this;
@@ -30,10 +29,10 @@ public class CommandItemHandler extends JavaPlugin {
         Bukkit.getServer().getPluginManager().registerEvents(listener, this);
         List<String> aliases = new ArrayList<>();
         aliases.add("ih");
-        PluginCommand command =  Objects.requireNonNull(getCommand("ItemHandler"));
+        PluginCommand command = Objects.requireNonNull(getCommand("ItemHandler"));
         command.setAliases(aliases);
         command.setExecutor(executor);
-        listener.loadAllIntervalItems();
+        listener.loadAllResources();
         listener.runThreads();
         Component enableMessage = Component.text()
                 .append(Component.text("[" + this.getName() + "] ", NamedTextColor.GREEN))
@@ -51,21 +50,16 @@ public class CommandItemHandler extends JavaPlugin {
                 .build();
         Bukkit.getConsoleSender().sendMessage(enableMessage);
     }
-
-
     public Config getCustomConfig(){
         return pluginConfig;
     }
-
     public PlayerInteractionListener getListener(){
         return listener;
     }
     public GameCommandExecutor getExecutor(){
         return executor;
     }
-
-    public static CommandItemHandler getPlugin() {
+    public static ItemHandler getPlugin() {
         return instance;
     }
-
 }

@@ -1,31 +1,49 @@
 package org.minecrafttest.main.Listener;
 
-import org.bukkit.Material;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.inventory.ItemStack;
-
 import java.util.List;
+import java.util.Map;
 
-public class CustomMaterial {
-    private final Material material;
-    private final int quantity;
+//Meta
+public class MaterialMetadata {
+    private final String material;
+    private final String quantity;
     private final String name;
     private final String subcommand;
-    private final List<String> sub_lore;
+    private final List<String> subLore;
+    private final boolean addItemOnClick;
+    private final boolean setDrop;
+    private final boolean changeSlot;
+    private final String itemName;
+    private final String subcommandRight;
+    private final String subcommandLeft;
+    private final Map<String, String> enchantments;
+    private final boolean shotBow;
+    private final boolean sub_wearArmor;
+    private final boolean sub_deleteItemOnDeath;
 
-    public CustomMaterial(Material material, int quantity, String name, String subcommand, List<String> sub_lore) {
+    public MaterialMetadata(String material, String quantity, String name, String subcommand, String subcommandRight, String subcommandLeft, List<String> subLore, boolean addItemOnClick, boolean setDrop, boolean changeSlot, String itemName, Map<String, String>  enchantments, boolean shotBow, boolean sub_wearArmor, boolean sub_deleteItemOnDeath) {
         this.material = material;
         this.quantity = quantity;
         this.name = name;
         this.subcommand = subcommand;
-        this.sub_lore = sub_lore;
+        this.subcommandRight = subcommandRight;
+        this.subcommandLeft = subcommandLeft;
+        this.subLore = subLore;
+        this.addItemOnClick = addItemOnClick;
+        this.setDrop = setDrop;
+        this.changeSlot = changeSlot;
+        this.itemName = itemName;
+        this.enchantments = enchantments;
+        this.shotBow = shotBow;
+        this.sub_wearArmor = sub_wearArmor;
+        this.sub_deleteItemOnDeath = sub_deleteItemOnDeath;
     }
 
-    public Material getMaterial() {
+    public String getMaterial() {
         return material;
     }
 
-    public int getQuantity() {
+    public String getQuantity() {
         return quantity;
     }
 
@@ -37,21 +55,48 @@ public class CustomMaterial {
         return subcommand;
     }
 
-    public List<String> getSub_lore() {
-        return sub_lore;
+    public String getSubcommandRight() {
+        return subcommandRight;
     }
 
-    public static CustomMaterial fromConfiguration(ConfigurationSection configSection) {
-        Material material = Material.valueOf(configSection.getString("material", "DIRT"));
-        int quantity = configSection.getInt("quantity", 1);
-        String name = configSection.getString("name", "Item_Name");
-        String subcommand = configSection.getString("subcommand", "default_subcommand");
-        List<String> sub_lore = configSection.getStringList("sub_lore");
-        return new CustomMaterial(material, quantity, name, subcommand, sub_lore);
+    public String getSubcommandLeft() {
+        return subcommandLeft;
     }
 
-    public ItemStack toItemStack() {
-        // Set custom metadata if needed
-        return new ItemStack(material, quantity);
+    public List<String> getSubLore() {
+        return subLore;
     }
+
+    public boolean isAddItemOnClick() {
+        return addItemOnClick;
+    }
+
+    public boolean isSetDrop() {
+        return setDrop;
+    }
+
+    public boolean isChangeSlot() {
+        return changeSlot;
+    }
+
+    public String getItemName() {
+        return itemName;
+    }
+
+    public Map<String, String> getEnchantments() {
+        return enchantments;
+    }
+
+    public boolean shotBow() {
+        return shotBow;
+    }
+
+    public boolean wearArmor() {
+        return sub_wearArmor;
+    }
+
+    public boolean deleteItemOnDeath(){
+        return sub_deleteItemOnDeath;
+    }
+
 }

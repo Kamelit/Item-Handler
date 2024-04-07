@@ -1,4 +1,14 @@
-name: Main
+name: ItemHandler
 version: '${project.version}'
-main: org.minecrafttest.main.Main
+main: org.minecrafttest.main.ItemHandler
 api-version: '1.20'
+folia-supported: true
+depend: [PlaceholderAPI]
+
+commands:
+  ItemHandler:
+    description: Items from config File!
+    usage: /itemhandler
+    aliases:
+      - ih
+    permission: itemhandler.view

@@ -8,13 +8,13 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.minecrafttest.main.Config.Config;
 import org.minecrafttest.main.ItemHandler;
 import org.minecrafttest.main.Listener.PlayerInteractionListener;
+import org.minecrafttest.main.Particles.TypesAnimation;
 
 import java.io.File;
 import java.util.*;
@@ -25,21 +25,16 @@ import java.util.stream.Collectors;
 
 //GameCommandExecutor
 public class GameCommandExecutor implements CommandExecutor, TabCompleter {
-    private final ItemHandler plugin;
-    private final PlayerInteractionListener listener;
-    private final Config config;
+    private final ItemHandler plugin = ItemHandler.getPlugin();
+    private final PlayerInteractionListener listener = plugin.getListener();
+    private final Config config = plugin.getCustomConfig();
     private String configName = "";
-    private File file;
-    private YamlConfiguration worldConfig;
     private Location location;
     private double x, y, z;
-    //private final List<String> actions = new ArrayList<>(Arrays.asList("a","b","c","d","e"));
-
-    public GameCommandExecutor() {
-        this.plugin = ItemHandler.getPlugin();
-        this.listener = plugin.getListener();
-        this.config = plugin.getCustomConfig();
-    }
+    private final List<String> typeActions = Arrays.asList("on_block_burned","on_click","on_right_click", "on_left_click",  "on_block_break",
+            "on_block_place", "on_block_explode", "on_block_decay", "on_block_grow", "on_block_redstone_change", "on_block_state_player_change");
+    private final List<String> playerItems = Arrays.asList(listener.groupKeysMenusType);
+    private final File file = new File(plugin.getDataFolder(), "blocks_events/world.yml");
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String label, String[] args) {
@@ -70,7 +65,6 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             plugin.reloadConfig();
             String file = !Objects.equals(configName, "") ? configName : "subConfig";
             listener.updates("profiles/" + file);
-
             Component enableMessage = Component.text()
                     .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.BLUE))
                     .append(Component.text("Reload Config! ", NamedTextColor.WHITE))
@@ -80,7 +74,45 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (args[0].equalsIgnoreCase("Chronometer") && args[1].equalsIgnoreCase("start")){
+            Player player = (Player) sender;
+            plugin.getChronometer().startChronometer(player, 5,0);
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("Chronometer") && args[1].equalsIgnoreCase("stop") ){
+            Player player = (Player) sender;
+            plugin.getChronometer().stopChronometer(player);
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("Chronometer") && args[1].equalsIgnoreCase("restart") ){
+            Player player = (Player) sender;
+            if (plugin.getChronometer().isRunChronometer(player)) plugin.getChronometer().stopChronometer(player);
+            plugin.getChronometer().startChronometer(player, 5,0);
+            return true;
+        }
+
         if (args.length >= 2 && args[0].equalsIgnoreCase("load")) {
+            if (args.length >= 3 && args[1].equalsIgnoreCase("only_me")){
+                Player player = (Player) sender;
+                if (playerItems.contains(args[2].toLowerCase())) {
+                    if (!listener.playerInventory.get(args[2]).contains(player)) {
+                        listener.playerInventory.values().forEach(players -> players.remove(player));
+                        player.getInventory().clear();
+                        listener.setItems(player,args[2].toLowerCase());
+                        listener.playerInventory.get(args[2]).add(player);
+                        listener.runThreads();
+                    }
+                }else {
+                    sender.sendMessage(Component.text()
+                            .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
+                            .append(Component.text("Items of \""+ args[2] +"\" Not Found", NamedTextColor.RED))
+                            .build());
+                }
+                return true;
+            }
+
             StringBuilder configNameBuilder = new StringBuilder();
             for (int i = 1; i < args.length; i++) {
                 configNameBuilder.append(args[i]);
@@ -107,7 +139,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("event") && args[2].equalsIgnoreCase("block_in_destination")) {
+        if (args.length >= 3 && args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("event") && args[2].equalsIgnoreCase("block_in_destination")) {
             try {
                 Player targetPlayer = Bukkit.getPlayer(args[3]);
                 if (targetPlayer != null) {
@@ -118,7 +150,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                         String nameWorld = args[4];
 
                         final int index = 5;
-                        if (getMarks(sender, args, nameWorld, index)) return true;
+                        if (registerEventByCommand(sender, args, nameWorld, index)) return true;
                     }else {
                         sender.sendMessage(Component.text()
                                 .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
@@ -165,7 +197,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                         String nameWorld = args[6];
 
                         final int index = 7;
-                        if (getMarks(sender, args, nameWorld, index)) return true;
+                        if (registerEventByCommand(sender, args, nameWorld, index)) return true;
                     }
                     else {
                         sender.sendMessage(Component.text()
@@ -185,21 +217,137 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             }
         }
 
-        if (args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("action")){
-            if (listener.worldConfig.getKeys(false).contains(args[2])){
-                sender.sendMessage(Component.text()
-                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.YELLOW))
-                        .append(Component.text("Registered", NamedTextColor.GREEN))
-                        .build());
+        if (args.length >= 2 && args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("type_action")){
+            if (args.length > 2){
+                if (listener.worldConfig.getKeys(false).contains(args[2])){
+
+                    List<String> typeActionsLowerCase = typeActions.stream()
+                            .map(String::toLowerCase)
+                            .collect(Collectors.toList());
+
+                    Set<String> seen = new HashSet<>();
+
+                    List<String> actions = Arrays.stream(args, 3, args.length)
+                            .map(String::toLowerCase)
+                            .filter(action -> {
+                                if (typeActionsLowerCase.contains(action)) {
+                                    return seen.add(action);
+                                } else {
+                                    sender.sendMessage(Component.text("[" + plugin.getName() + "] action '" + action + "' Is not recognizable.", NamedTextColor.RED));
+                                    return false;
+                                }
+                            })
+                            .collect(Collectors.toList());
+
+                    listener.worldConfig.set(args[2]+".action", actions);
+                    config.saveWorldConfig(listener.worldConfig, file);
+
+
+                    if (!actions.isEmpty()) {
+                        if (listener.worldConfigInMemory.containsKey(args[2])) {
+                            List<Object> all = listener.worldConfigInMemory.get(args[2]);
+                            List<Object> clonedList = new ArrayList<>(all);
+                            if (clonedList.size() >= 7) clonedList.subList(6, clonedList.size()).clear();
+                            clonedList.addAll(actions);
+                            listener.worldConfigInMemory.replace(args[2], clonedList);
+                        }
+                        sender.sendMessage(Component.text("[" + plugin.getName() + "] Registered!: " + String.join(", ", actions), NamedTextColor.GREEN));
+                    }
+                }else {
+                    sender.sendMessage(Component.text()
+                            .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
+                            .append(Component.text("Event Not Found!", NamedTextColor.RED))
+                            .build());
+                    return true;
+                }
+            }
+            return true;
+        }
+
+        if (args.length >= 2 && args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("animation")){
+            if (args.length > 2 && listener.worldConfig.getKeys(false).contains(args[2])) {
+                if (args.length == 3){
+                    sender.sendMessage(Component.text()
+                            .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
+                            .append(Component.text("Select Animation", NamedTextColor.RED))
+                            .build());
+                    return true;
+                }
+                TypesAnimation animation = getAnimationByName(args[3]);
+                int range_of_view = 0;
+                if (args.length > 4)
+                    try {
+                    range_of_view = Integer.parseInt(args[4]);
+                    } catch (Exception e){
+                        sender.sendMessage(Component.text()
+                                .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
+                                .append(Component.text("Invalid "+ args[4] +" to cast to int ", NamedTextColor.RED))
+                                .build());
+                        return true;
+                }
+
+                if (animation != null) {
+                    listener.worldConfig.set(args[2] + ".animation", Arrays.asList(animation.name(),range_of_view));
+                    config.saveWorldConfig(listener.worldConfig, file);
+
+                    if (listener.worldConfigInMemory.containsKey(args[2])) {
+                        List<Object> metadata = new ArrayList<>(listener.worldConfigInMemory.get(args[2]));
+                        List<?> descAnimation = Arrays.asList(animation.name(), range_of_view); //new ArrayList
+                        List<?> metadataSubList = (List<?>) metadata.get(5);
+                            if (!metadataSubList.equals(descAnimation)) {
+                                plugin.getParticleAnimation().RemoveTaskingParticles(args[2]);
+                                metadata.set(5, descAnimation);
+                                plugin.getParticleAnimation().playAnimation(args[2], (Block) metadata.get(0), animation, range_of_view);
+                                listener.worldConfigInMemory.replace(args[2], metadata);
+                                sender.sendMessage(Component.text("[" + plugin.getName() + "] Registered Animation!: " + String.join(", ", String.valueOf(descAnimation)), NamedTextColor.GREEN));
+                            }
+                    }
+                }
             }else {
                 sender.sendMessage(Component.text()
                         .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
                         .append(Component.text("Event Not Found!", NamedTextColor.RED))
                         .build());
-                return true;
             }
             return true;
         }
+
+        if (args.length >= 2 && args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("new_command_in_event")){
+            if (args.length > 2 && listener.worldConfig.getKeys(false).contains(args[2])) {
+                int index = 3;
+                String input = Arrays.stream(args, index, args.length).collect(Collectors.joining(" "));
+
+                int marks = Arrays.stream(args, index, args.length)
+                        .mapToInt(arg -> (int)arg.chars().filter(ch -> ch == '\"').count())
+                        .sum();
+
+                Pattern pattern = Pattern.compile("\"([^\"]*)\"");
+                Matcher matcher = pattern.matcher(input);
+
+                if (matcher.find() && marks == 2) {
+                    String command = matcher.group(1);
+                    List<String> commands = listener.worldConfig.getStringList(args[2]+".command");
+                    commands.add(command);
+                    listener.worldConfig.set(args[2]+".command", commands);
+                    config.saveWorldConfig(listener.worldConfig, file);
+
+                    if (listener.worldConfigInMemory.containsKey(args[2])) {
+                        List<Object> metadata = new ArrayList<>(listener.worldConfigInMemory.get(args[2]));
+                        metadata.set(1, commands);
+                        listener.worldConfigInMemory.replace(args[2], metadata);
+                        sender.sendMessage(Component.text("[" + plugin.getName() + "] Registered Commands!: " + String.join(", ", String.valueOf(commands)), NamedTextColor.GREEN));
+                    }
+
+                } else {
+                    sender.sendMessage(Component.text()
+                            .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
+                            .append(Component.text("Incorrect Syntax in > \" ", NamedTextColor.RED))
+                            .build());
+                }
+                return true;
+            }
+        }
+
 
         Component errorMessage = Component.text()
                 .append(Component.text("Command not recognized: ", NamedTextColor.RED))
@@ -213,7 +361,8 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
         return false;
     }
 
-    private boolean getMarks(@NotNull CommandSender sender, String[] args, String nameWorld, int index) {
+
+    private boolean registerEventByCommand(@NotNull CommandSender sender, String[] args, String nameWorld, int index) {
         int marks = Arrays.stream(args, index, args.length)
                 .mapToInt(arg -> (int)arg.chars().filter(ch -> ch == '\"').count())
                 .sum();
@@ -254,18 +403,16 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
         if (world != null) {
             location = new Location(world, x, y, z);
 
-            file = new File(plugin.getDataFolder(), "blocks_events/world.yml");
-            worldConfig = YamlConfiguration.loadConfiguration(file);
 
             if (eventName.equals("null") || eventName.isEmpty()) {
                 int counter = 1;
-                while (worldConfig.contains("Event_" + counter)) {
+                while (listener.worldConfig.contains("Event_" + counter)) {
                     counter++;
                 }
                 eventName = "Event_" + counter;
             }
 
-            if (worldConfig.contains(eventName)) {
+            if (listener.worldConfig.contains(eventName)) {
                 sender.sendMessage(Component.text()
                         .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
                         .append(Component.text("This event already registered!", NamedTextColor.RED))
@@ -273,7 +420,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                 return;
             }
             if (location.isChunkLoaded()){
-                listener.locationCommands.put(eventName, new Object[]{location.getBlock(), onCommand, "", location.getChunk().getX(), location.getChunk().getZ(), world});
+                listener.worldConfigInMemory.put(eventName, Arrays.asList(location.getBlock(), Collections.singletonList(onCommand), location.getChunk().getX(), location.getChunk().getZ(), world, Arrays.asList(TypesAnimation.NONE.name(),0), ""));
                 sender.sendMessage(Component.text()
                         .append(Component.text("[OptimizerHandler] ", NamedTextColor.LIGHT_PURPLE))
                         .append(Component.text("Registered "+ eventName + ":", NamedTextColor.GREEN))
@@ -305,16 +452,17 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
 
             Bukkit.getRegionScheduler().run(plugin, location, task -> {
                 Block block = location.getBlock();
-                worldConfig.set(finalEventName + ".world", nameWorld);
-                worldConfig.set(finalEventName + ".x", x);
-                worldConfig.set(finalEventName + ".y", y);
-                worldConfig.set(finalEventName + ".z", z);
-                worldConfig.set(finalEventName + ".blockType", block.getType().name());
-                worldConfig.set(finalEventName + ".chunkX", location.getChunk().getX());
-                worldConfig.set(finalEventName + ".chunkZ", location.getChunk().getZ());
-                worldConfig.set(finalEventName + ".command", onCommand);
-                config.saveWorldConfig(worldConfig, file);
-                listener.worldConfig = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "blocks_events/world" + ".yml"));
+                listener.worldConfig.set(finalEventName + ".world", nameWorld);
+                listener.worldConfig.set(finalEventName + ".x", x);
+                listener.worldConfig.set(finalEventName + ".y", y);
+                listener.worldConfig.set(finalEventName + ".z", z);
+                listener.worldConfig.set(finalEventName + ".blockType", block.getType().name());
+                listener.worldConfig.set(finalEventName + ".chunkX", location.getChunk().getX());
+                listener.worldConfig.set(finalEventName + ".chunkZ", location.getChunk().getZ());
+                listener.worldConfig.set(finalEventName + ".command", Collections.singletonList(onCommand));
+                listener.worldConfig.set(finalEventName + ".animation", Arrays.asList(TypesAnimation.NONE.name(),0));
+                listener.worldConfig.set(finalEventName + ".action", "");
+                config.saveWorldConfig(listener.worldConfig, file);
                 sender.sendMessage(Component.text()
                         .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.LIGHT_PURPLE))
                         .append(Component.text(" Success!", NamedTextColor.WHITE))
@@ -374,11 +522,19 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                 }
             }
             return matchingCommands;
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("load")) {
-            return getMatchingConfigNames(args[1]); //No Change this
+        } else if (args.length >= 2 && args[0].equalsIgnoreCase("load")) {
+            if (args.length == 3) return playerItems;
+            List<String> files = getMatchingConfigNames(args[1]);//No Change this
+            if (!files.contains("only_me")) files.add("only_me");
+            return files;
         } else if (args.length >= 2 && args[0].equalsIgnoreCase("register")) {
             if (args.length == 2) {
-                return Arrays.asList("event","action");
+                return Arrays.asList("event","type_action","animation", "new_command_in_event");
+            }
+            if (args.length == 3 && args[1].equalsIgnoreCase("new_command_in_event")) {
+                return new ArrayList<>(listener.worldConfig.getKeys(false));
+            }if (args.length >= 4 && args[1].equalsIgnoreCase("new_command_in_event") && listener.worldConfig.contains(args[2])){
+                if (args[3].isEmpty())return Collections.singletonList("\"command\"");
             }
             if (args.length == 3 && args[1].equalsIgnoreCase("event")) {
                 return Collections.singletonList("block_in_destination");
@@ -386,9 +542,23 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             if (args.length >= 4 && args[1].equalsIgnoreCase("event") && args[2].equalsIgnoreCase("block_in_destination")) {
                 return getSuggestionsLocation(args[3],sender,args);
             }
-            if (args.length == 3 && args[1].equalsIgnoreCase("action")){
+            if (args.length == 3 && args[1].equalsIgnoreCase("type_action")){
                 return new ArrayList<>(listener.worldConfig.getKeys(false));
             }
+            if (args.length >= 4 && args[1].equalsIgnoreCase("type_action") && listener.worldConfig.contains(args[2])) {
+                return typeActions.stream()
+                        .filter(action -> !Arrays.asList(args).contains(action))
+                        .collect(Collectors.toList());
+            }
+            if (args.length == 3 && args[1].equalsIgnoreCase("animation")){
+                return new ArrayList<>(listener.worldConfig.getKeys(false));
+            }
+            if (args.length == 4 && args[1].equalsIgnoreCase("animation") && listener.worldConfig.contains(args[2])) {
+                return Arrays.stream(TypesAnimation.values())
+                        .map(Enum::name)
+                        .collect(Collectors.toList());
+            }
+
         }
         return new ArrayList<>();
     }
@@ -486,6 +656,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
         }
         return result;
     }
+
     private List<String> getMatchingConfigNames(String partialName) {
         List<String> matchingNames = new ArrayList<>();
         File profilesFolder = new File(plugin.getDataFolder(), "profiles");
@@ -502,6 +673,15 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             }
         }
         return matchingNames;
+    }
+
+    private TypesAnimation getAnimationByName(String name) {
+        for (TypesAnimation animation : TypesAnimation.values()) {
+            if (animation.name().equalsIgnoreCase(name)) {
+                return animation;
+            }
+        }
+        return null;
     }
 
     public String getConfigName() {

@@ -50,6 +50,11 @@ public class Config {
             plugin.saveResource("blocks_events/world.yml", false);
         }
 
+        File parkour = new File(new File(plugin.getDataFolder(), "parkour"), "parkour.yml");
+        if (!parkour.exists()) {
+            plugin.saveResource("parkour/parkour.yml", false);
+        }
+
         plugin.reloadConfig();
     }
 

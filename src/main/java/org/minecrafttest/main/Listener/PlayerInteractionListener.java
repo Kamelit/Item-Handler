@@ -14,14 +14,11 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
+import org.bukkit.event.block.*;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.player.PlayerDropItemEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.inventory.Inventory;
@@ -29,7 +26,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.jetbrains.annotations.Nullable;
 import org.minecrafttest.main.ItemHandler;
+import org.minecrafttest.main.Particles.TypesAnimation;
 
 import java.io.File;
 import java.util.*;
@@ -52,136 +51,142 @@ public class PlayerInteractionListener implements Listener {
     private final NamespacedKey key5 = new NamespacedKey(plugin, "shotBow");
     private final NamespacedKey key6 = new NamespacedKey(plugin, "wear_armor");
     private final NamespacedKey key7 = new NamespacedKey(plugin,"delete_item_on_death");
-    private final List<MaterialMetadata> materialInfoList = new ArrayList<>();
-    private final List<ScheduledTask> taskMap = new ArrayList<>();
-    private final Map<Runnable, Long> MapTask = new HashMap<>();
+    private final Map<String,List<MaterialMetadata>> materialInfoList = new HashMap<>();
+
+    private final Map<String, Map<Runnable, Long>> MapTask = new HashMap<>();
+
     private YamlConfiguration yamlConfig;
+    private String quantity, material, name, commandOnClick, commandRight, commandLeft;
+    private boolean setDrop, changeSlot, addItemOnClick, deleteItemOnDeath, shotBow, wearArmor;
+
+    //Menus
+    public final String[] groupKeysMenusType = {"main", "parkour"};
 
     //All Class
-    public final Map<String, Object[]> locationCommands = new HashMap<>();
+    public final Map<String, List<ScheduledTask>> taskMap = new HashMap<>();
+    public final Map<String, List<Object>> worldConfigInMemory = new HashMap<>();
+    public final Map<String, List<Player>> playerInventory = new HashMap<>();
     public YamlConfiguration worldConfig;
 
-    public void loadAllResources(){
-        worldConfig = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "blocks_events/world" + ".yml"));
+    public void loadAllResources() {
+        for (String key : groupKeysMenusType) {
+            playerInventory.putIfAbsent(key, new ArrayList<>());
+            taskMap.putIfAbsent(key, new ArrayList<>());
+        }
+        worldConfig = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "blocks_events/world.yml"));
         if (getConfigurationName()) return;
-        if (yamlConfig.contains("items")) {
-            ConfigurationSection itemsConfig = yamlConfig.getConfigurationSection("items");
-            assert itemsConfig != null;
+
+        for (String path : yamlConfig.getKeys(false)) {
+            ConfigurationSection itemsConfig = yamlConfig.getConfigurationSection(path);
+            if (itemsConfig == null) continue;
+
             for (String itemName : itemsConfig.getKeys(false)) {
                 ConfigurationSection itemConfig = itemsConfig.getConfigurationSection(itemName);
-                assert itemConfig != null;
-                String material = itemConfig.getString("material", "DIRT");
-                String quantity = itemConfig.getString("quantity", "1");
-                String name = itemConfig.getString("name","");
-                boolean setDrop = itemConfig.getBoolean("set_drop",true);
-                String commandOnClick = itemConfig.getString("command_onclick","");
-                String commandRight = itemConfig.getString("command_right","");
-                String commandLeft = itemConfig.getString("command_left","");
-                boolean changeSlot = itemConfig.getBoolean("change_slot",true);
-                boolean addItemOnClick = itemConfig.getBoolean("add_item_on_click",true);
-                boolean deleteItemOnDeath = itemConfig.getBoolean("delete_item_on_death",false);
+                if (itemConfig == null) continue;
 
-                Object loreObj = itemConfig.get("lore");
-                List<String> loreList = new ArrayList<>();
+                getMeta(itemConfig);
+                List<String> loreList = getStrings(itemConfig, itemConfig.get("lore"), new ArrayList<>());
 
-                if (loreObj instanceof List) {
-                    loreList = itemConfig.getStringList("lore");
-                } else if (loreObj instanceof String) {
-                    String lo = itemConfig.getString("lore");
-                    if (lo != null && !lo.isEmpty()) {
-                        if (lo.contains("\n")) {
-                            loreList.addAll(Arrays.asList(lo.split("\\n")));
-                        } else {
-                            loreList.add(lo);
-                        }
-                    }
-                } else {
-                    loreList = new ArrayList<>();
-                }
+                long changeIntervalMillis = getChangeInterval(itemConfig);
 
-                boolean shotBow = itemConfig.getBoolean("shotBow",true);
-                boolean wearArmor = itemConfig.getBoolean("wear_armor",true);
-
-                long changeIntervalSeconds = 2000;
-                if (itemConfig.contains("material_change_interval_seconds")) {
-                    changeIntervalSeconds =  (1000 *(itemConfig.getLong("material_change_interval_seconds", 1000) <= 0? 1 : itemConfig.getLong("material_change_interval_seconds",1000)));
-                }
-                if (itemConfig.contains("material_change_interval_milliseconds")) {
-                    changeIntervalSeconds = ((itemConfig.getLong("material_change_interval_milliseconds", 1000) <= 0? 1 : itemConfig.getLong("material_change_interval_milliseconds",1000)));
-                }
-
-                int slot = itemConfig.getInt("slot",0);
-
+                int slot = itemConfig.getInt("slot", 0);
 
                 if (itemConfig.contains("materials")) {
                     String item_Name = itemConfig.getName();
                     ConfigurationSection materialsConfig = itemConfig.getConfigurationSection("materials");
-                    assert materialsConfig != null;
+                    if (materialsConfig == null) continue;
+
                     for (String materialName : materialsConfig.getKeys(false)) {
-
                         ConfigurationSection materialConfig = materialsConfig.getConfigurationSection(materialName);
-                        assert materialConfig != null;
-                        String subMaterial = materialConfig.getString("sub_material",material);
-                        String  sub_quantity = materialConfig.getString("sub_quantity",quantity);
-                        String sub_name = materialConfig.getString("sub_name",name);
-                        String sub_command = materialConfig.getString("sub_command",commandOnClick);
-                        String sub_commandRight = materialConfig.getString("sub_command_Right",commandRight);
-                        String sub_commandLeft = materialConfig.getString("sub_command_Left",commandLeft);
-                        boolean sub_add_Item = materialConfig.getBoolean("sub_add_item_on_click",addItemOnClick);
-                        boolean sub_shotBow = materialConfig.getBoolean("shotBow",shotBow);
-                        boolean sub_wearArmor = materialConfig.getBoolean("wear_armor",wearArmor);
-                        boolean sub_deleteItemOnDeath = itemConfig.getBoolean("sub_delete_item_on_death",deleteItemOnDeath);
-                        Map<String, String> enchantments = new HashMap<>();
+                        if (materialConfig == null) continue;
 
-
-                        List<String> sub_Lore = new ArrayList<>();
-                        Object subLoreObj = materialConfig.get("sub_lore");
-                        if (subLoreObj instanceof List) {
-                            sub_Lore = materialConfig.getStringList("sub_lore");
-                        } else if (subLoreObj instanceof String) {
-                            String lo = materialConfig.getString("sub_lore");
-                            if (lo != null && !lo.isEmpty()) {
-                                if (lo.contains("\n")) {
-                                    sub_Lore.addAll(Arrays.asList(lo.split("\\n")));
-                                } else {
-                                    sub_Lore.add(lo);
-                                }
-                            }
-                        } else {
-                            sub_Lore = new ArrayList<>();
-                        }
-
-                        sub_Lore.addAll(loreList);
-
-                        if (itemConfig.contains("enchantments")) {
-                            ConfigurationSection enchantmentsConfig = itemConfig.getConfigurationSection("enchantments");
-                            assert enchantmentsConfig != null;
-                            for (String enchantmentKey : enchantmentsConfig.getKeys(false)) {
-                                if (enchantmentKey != null) {
-                                    String levelString = enchantmentsConfig.getString(enchantmentKey);
-                                    enchantments.put(enchantmentKey, levelString);
-                                }
-                            }
-                        }
-
-                        if (materialConfig.contains("enchantments")) {
-                            ConfigurationSection enchantmentsConfig = materialConfig.getConfigurationSection("enchantments");
-                            assert enchantmentsConfig != null;
-                            for (String enchantmentKey : enchantmentsConfig.getKeys(false)) {
-                                if (enchantmentKey != null) {
-                                    String levelString = enchantmentsConfig.getString(enchantmentKey);
-                                    enchantments.put(enchantmentKey, levelString);
-                                }
-                            }
-                        }
-
-                        MaterialMetadata subMaterialInfo = new MaterialMetadata(subMaterial, sub_quantity, sub_name, sub_command,sub_commandRight, sub_commandLeft , sub_Lore, sub_add_Item, setDrop, changeSlot, item_Name, enchantments, sub_shotBow, sub_wearArmor, sub_deleteItemOnDeath);
-                        materialInfoList.add(subMaterialInfo);
+                        MaterialMetadata subMaterialInfo = extractMaterialMetadata(materialConfig, itemConfig, item_Name, loreList);
+                        materialInfoList.computeIfAbsent(path, k -> new ArrayList<>()).add(subMaterialInfo);
                     }
-                    startMaterialChangeThread(changeIntervalSeconds, slot, item_Name);
+                    startMaterialChangeThread(changeIntervalMillis, slot, item_Name, path);
                 }
             }
         }
+    }
+
+    private long getChangeInterval(ConfigurationSection itemConfig) {
+        long changeIntervalMillis = 2000;
+        if (itemConfig.contains("material_change_interval_seconds")) {
+            changeIntervalMillis = 1000 * Math.max(1, itemConfig.getLong("material_change_interval_seconds", 1000));
+        }
+        if (itemConfig.contains("material_change_interval_milliseconds")) {
+            changeIntervalMillis = Math.max(1, itemConfig.getLong("material_change_interval_milliseconds", 1000));
+        }
+        return changeIntervalMillis;
+    }
+
+    private MaterialMetadata extractMaterialMetadata(ConfigurationSection materialConfig, ConfigurationSection itemConfig, String itemName, List<String> loreList) {
+        String subMaterial = materialConfig.getString("sub_material", material);
+        String subQuantity = materialConfig.getString("sub_quantity", quantity);
+        String subName = materialConfig.getString("sub_name", name);
+        String subCommand = materialConfig.getString("sub_command", commandOnClick);
+        String subCommandRight = materialConfig.getString("sub_command_Right", commandRight);
+        String subCommandLeft = materialConfig.getString("sub_command_Left", commandLeft);
+        boolean subAddItem = materialConfig.getBoolean("sub_add_item_on_click", addItemOnClick);
+        boolean subShotBow = materialConfig.getBoolean("shotBow", shotBow);
+        boolean subWearArmor = materialConfig.getBoolean("wear_armor", wearArmor);
+        boolean subDeleteItemOnDeath = itemConfig.getBoolean("sub_delete_item_on_death", deleteItemOnDeath);
+
+        List<String> subLore = getStrings(materialConfig, materialConfig.get("sub_lore"), new ArrayList<>());
+        subLore.addAll(loreList);
+
+        Map<String, String> enchantments = new HashMap<>();
+        enchantments(itemConfig, enchantments);
+        enchantments(materialConfig, enchantments);
+
+        return new MaterialMetadata(subMaterial, subQuantity, subName, subCommand, subCommandRight, subCommandLeft, subLore, subAddItem, setDrop, changeSlot, itemName, enchantments, subShotBow, subWearArmor, subDeleteItemOnDeath);
+    }
+
+
+    private void enchantments(ConfigurationSection materialConfig, Map<String, String> enchantments) {
+        if (materialConfig.contains("enchantments")) {
+            ConfigurationSection enchantmentsConfig = materialConfig.getConfigurationSection("enchantments");
+            assert enchantmentsConfig != null;
+            for (String enchantmentKey : enchantmentsConfig.getKeys(false)) {
+                if (enchantmentKey != null) {
+                    String levelString = enchantmentsConfig.getString(enchantmentKey);
+                    enchantments.put(enchantmentKey, levelString);
+                }
+            }
+        }
+    }
+
+    private List<String> getStrings(ConfigurationSection itemConfig, Object loreObj, List<String> loreList) {
+        if (loreObj instanceof List) {
+            loreList = itemConfig.getStringList("lore");
+        } else if (loreObj instanceof String) {
+            String lo = itemConfig.getString("lore");
+            if (lo != null && !lo.isEmpty()) {
+                if (lo.contains("\n")) {
+                    loreList.addAll(Arrays.asList(lo.split("\\n")));
+                } else {
+                    loreList.add(lo);
+                }
+            }
+        } else {
+            loreList = new ArrayList<>();
+        }
+        return loreList;
+    }
+
+    private void getMeta(ConfigurationSection itemConfig) {
+        material = itemConfig.getString("material", "DIRT");
+        quantity = itemConfig.getString("quantity", "1");
+        name = itemConfig.getString("name","");
+        setDrop = itemConfig.getBoolean("set_drop",true);
+        commandOnClick = itemConfig.getString("command_onclick","");
+        commandRight = itemConfig.getString("command_right","");
+        commandLeft = itemConfig.getString("command_left","");
+        changeSlot = itemConfig.getBoolean("change_slot",true);
+        addItemOnClick = itemConfig.getBoolean("add_item_on_click",true);
+        deleteItemOnDeath = itemConfig.getBoolean("delete_item_on_death",false);
+        shotBow = itemConfig.getBoolean("shotBow",true);
+        wearArmor = itemConfig.getBoolean("wear_armor",true);
     }
 
     private boolean getConfigurationName() {
@@ -191,28 +196,60 @@ public class PlayerInteractionListener implements Listener {
         return yamlConfig.getKeys(false).isEmpty();
     }
 
+
+
     public void runThreads() {
-        for (Map.Entry<Runnable, Long> entry : MapTask.entrySet()) {
-            Runnable task = entry.getKey();
-            long delay = entry.getValue();
-            taskMap.add(Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> task.run(), 0, delay, TimeUnit.MILLISECONDS));
+        cancelThreadsInNotUse();
+
+        for (Map.Entry<String, Map<Runnable, Long>> entryM : MapTask.entrySet()) {
+            String key = entryM.getKey();
+            if (taskMap.get(key).isEmpty()) {
+                for (Map.Entry<Runnable, Long> entry : entryM.getValue().entrySet()) {
+                    Runnable task = entry.getKey();
+                    long delay = entry.getValue();
+                    if (playerInventory.containsKey(key) && !playerInventory.get(key).isEmpty()) {
+                        taskMap.get(key).add(Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> task.run(), 0, delay, TimeUnit.MILLISECONDS));
+                    }
+                }
+            }
         }
     }
-    public void cancelMaterialChangeTasks(boolean clear) {
-        for (ScheduledTask task : taskMap) {
-            task.cancel();
-        }
-        if (clear){
-            taskMap.clear();
-            MapTask.clear();
+
+    public void cancelThreadsInNotUse() {
+        for (String key : new ArrayList<>(playerInventory.keySet())) {
+            List<Player> players = playerInventory.get(key);
+            if (players.isEmpty()) {
+                List<ScheduledTask> tasks = taskMap.get(key);
+                if (tasks != null) {
+                    for (ScheduledTask task : tasks) {
+                        task.cancel();
+                    }
+                    tasks.clear();
+                }
+            }
         }
     }
+
+    public void cancelAllMaterialChangeTasks(){
+        for (List<ScheduledTask> tasks : taskMap.values()) {
+            for (ScheduledTask task : tasks) {
+                task.cancel();
+            }
+            tasks.clear();
+        }
+    }
+
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        setItems(player);
+        playerInventory.get(groupKeysMenusType[0]).add(player);
+        System.out.println(playerInventory);
+        setItems(player, groupKeysMenusType[0]);
+        runThreads();
     }
-    public void setItems(Player player) {
+
+
+    public void setItems(Player player, String path) {
         if (plugin.getCustomConfig().getClearInventory()) {
             Inventory inventory = player.getInventory();
             ItemStack[] contents = inventory.getContents();
@@ -223,8 +260,8 @@ public class PlayerInteractionListener implements Listener {
             }
         }
         if (getConfigurationName()) return;
-        if (yamlConfig.contains("items")) {
-            ConfigurationSection itemsConfig = yamlConfig.getConfigurationSection("items");
+        if (yamlConfig.contains(path)) {
+            ConfigurationSection itemsConfig = yamlConfig.getConfigurationSection(path);
             assert itemsConfig != null;
             for (String itemName : itemsConfig.getKeys(false)) {
                 ConfigurationSection itemConfig = itemsConfig.getConfigurationSection(itemName);
@@ -238,6 +275,7 @@ public class PlayerInteractionListener implements Listener {
             }
         }
     }
+
     private boolean isItemFromPlugin(ItemStack itemStack) {
         ItemMeta meta = itemStack.getItemMeta();
         if (meta == null) return true;
@@ -260,6 +298,10 @@ public class PlayerInteractionListener implements Listener {
                 || material == Material.LEVER;
     }
     private boolean shot(ItemStack itemStack) {
+        return CheckUse(itemStack, key5);
+    }
+
+    private boolean CheckUse(ItemStack itemStack, NamespacedKey key5) {
         if (itemStack != null && itemStack.hasItemMeta()) {
             ItemMeta itemMeta = itemStack.getItemMeta();
             if (itemMeta != null && itemMeta.getPersistentDataContainer().has(key5, PersistentDataType.BYTE)) {
@@ -271,20 +313,13 @@ public class PlayerInteractionListener implements Listener {
     }
 
     private boolean wear(ItemStack itemStack) {
-        if (itemStack != null && itemStack.hasItemMeta()) {
-            ItemMeta itemMeta = itemStack.getItemMeta();
-            if (itemMeta != null && itemMeta.getPersistentDataContainer().has(key6, PersistentDataType.BYTE)) {
-                Byte setDropValue = itemMeta.getPersistentDataContainer().get(key6, PersistentDataType.BYTE);
-                return setDropValue != null && setDropValue != 1;
-            }
-        }
-        return true;
+        return CheckUse(itemStack, key6);
     }
 
     @EventHandler
     public void onDeath(PlayerDeathEvent event) {
         Player eventPlayer = event.getPlayer();
-        Bukkit.getAsyncScheduler().runDelayed(plugin, scheduledTask -> setItems(eventPlayer), 250, TimeUnit.MILLISECONDS);
+        Bukkit.getAsyncScheduler().runDelayed(plugin, scheduledTask -> setItems(eventPlayer, groupKeysMenusType[0]), 250, TimeUnit.MILLISECONDS);
 
         for (ItemStack drop : event.getDrops()) {
             if (drop != null && drop.hasItemMeta()) {
@@ -351,22 +386,24 @@ public class PlayerInteractionListener implements Listener {
         if (slot >= 0 && slot < player.getInventory().getSize()) {
             PlayerInventory inventory = player.getInventory();
             ItemStack item = inventory.getItem(slot);
-            if (item != null && item.hasItemMeta()) {
-                ItemMeta itemMeta = item.getItemMeta();
-                if (itemMeta != null && itemMeta.getPersistentDataContainer().has(key3, PersistentDataType.BYTE)) {
-                    Byte changeSlotValue = itemMeta.getPersistentDataContainer().get(key3, PersistentDataType.BYTE);
-                    return (changeSlotValue != null && changeSlotValue == 0);
-                }
-            }
+            Boolean changeSlotValue = getaBooleanMeta(item);
+            if (changeSlotValue != null) return changeSlotValue;
         }
-        if (itemStack != null && itemStack.hasItemMeta()) {
-            ItemMeta itemMeta = itemStack.getItemMeta();
+        Boolean changeSlotValue = getaBooleanMeta(itemStack);
+        if (changeSlotValue != null) return changeSlotValue;
+        return false;
+    }
+
+    @Nullable
+    private Boolean getaBooleanMeta(ItemStack item) {
+        if (item != null && item.hasItemMeta()) {
+            ItemMeta itemMeta = item.getItemMeta();
             if (itemMeta != null && itemMeta.getPersistentDataContainer().has(key3, PersistentDataType.BYTE)) {
                 Byte changeSlotValue = itemMeta.getPersistentDataContainer().get(key3, PersistentDataType.BYTE);
                 return (changeSlotValue != null && changeSlotValue == 0);
             }
         }
-        return false;
+        return null;
     }
 
     private boolean canDropItem(ItemStack itemStack) {
@@ -381,7 +418,7 @@ public class PlayerInteractionListener implements Listener {
     }
 
     private ItemStack createItemStackFromConfig(ConfigurationSection itemConfig, Player player) {
-        String material = itemConfig.getString("material", "DIRT");
+        material = itemConfig.getString("material", "DIRT");
 
         String materialMeta = PlaceholderAPI.setPlaceholders(player, material);
         Material mat = Material.matchMaterial(materialMeta.toUpperCase());
@@ -389,49 +426,13 @@ public class PlayerInteractionListener implements Listener {
         if (mat == null) {
             plugin.getLogger().warning("Invalid material name: " + materialMeta);
         } else {
-            String quantity = itemConfig.getString("quantity", "1");
-            String name = itemConfig.getString("name","");
-            boolean setDrop = itemConfig.getBoolean("set_drop", true);
-            String commandOnClick = itemConfig.getString("command_onclick","");
-            String commandRight = itemConfig.getString("command_right","");
-            String commandLeft = itemConfig.getString("command_left","");
-            boolean changeSlot = itemConfig.getBoolean("change_slot",true);
-            boolean addItemOnClick = itemConfig.getBoolean("add_item_on_click",true);
-            boolean shotBow = itemConfig.getBoolean("shotBow",true);
-            boolean wearArmor = itemConfig.getBoolean("wear_armor",true);
-            boolean deleteItemOnDeath = itemConfig.getBoolean("delete_item_on_death",false);
-
-
+            getMeta(itemConfig);
             Object loreObj = itemConfig.get("lore");
             List<String> loreList = new ArrayList<>();
-
-            if (loreObj instanceof List) {
-                loreList = itemConfig.getStringList("lore");
-            } else if (loreObj instanceof String) {
-                String lo = itemConfig.getString("lore");
-                if (lo != null && !lo.isEmpty()) {
-                    if (lo.contains("\n")) {
-                        loreList.addAll(Arrays.asList(lo.split("\\n")));
-                    } else {
-                        loreList.add(lo);
-                    }
-                }
-            } else {
-                loreList = new ArrayList<>();
-            }
+            loreList = getStrings(itemConfig, loreObj, loreList);
 
             String quantityString = PlaceholderAPI.setPlaceholders(player, quantity);
-            int real_quantity;
-            try {
-                real_quantity = Integer.parseInt(quantityString);
-            } catch (NumberFormatException e) {
-                real_quantity = 1;
-                LogRecord logRecord = new LogRecord(Level.SEVERE, "Failed to parse quantity: " + e.getMessage());
-                logRecord.setThrown(e);
-                plugin.getLogger().log(logRecord);
-            }
-
-            ItemStack itemStack = new ItemStack(mat, real_quantity);
+            ItemStack itemStack = new ItemStack(mat, checkQuantity(quantityString));
             ItemMeta meta = itemStack.getItemMeta();
 
             if (itemConfig.contains("enchantments")) {
@@ -509,24 +510,41 @@ public class PlayerInteractionListener implements Listener {
         }
         return new ItemStack(Material.DIRT, 1);
     }
-    private void startMaterialChangeThread(long changeIntervalSeconds, int slot, String itemName) {
-        AtomicInteger currentIndex = new AtomicInteger();
-        MapTask.put(()->{
+
+    private void startMaterialChangeThread(long changeIntervalSeconds, int slot, String itemName, String path) {
+        AtomicInteger currentIndex = new AtomicInteger(0);
+        Runnable runnable = () -> {
             if (!materialInfoList.isEmpty()) {
-                List<MaterialMetadata> materialsForItem = materialInfoList.stream()
+                List<MaterialMetadata> materialsForItem = materialInfoList.get(path).stream()
                         .filter(materialMetadata -> materialMetadata.getItemName().equals(itemName))
                         .collect(Collectors.toList());
                 if (!materialsForItem.isEmpty()) {
-                    currentIndex.updateAndGet(v -> v % materialsForItem.size());
+                    currentIndex.getAndUpdate(v -> (v + 1) % materialsForItem.size());
                     MaterialMetadata nextMaterial = materialsForItem.get(currentIndex.get());
-                    for (Player player : Bukkit.getOnlinePlayers()) {
-                        ItemStack nextItemStack = createItemStackFromMaterialInfo(nextMaterial, player);
-                        player.getInventory().setItem(slot, nextItemStack);
-                    }
-                    currentIndex.set((currentIndex.get() + 1) % materialsForItem.size());
+
+                    playerInventory.getOrDefault(path, Collections.emptyList())
+                            .forEach(player -> {
+                                ItemStack nextItemStack = createItemStackFromMaterialInfo(nextMaterial, player);
+                                player.getInventory().setItem(slot, nextItemStack);
+                            });
                 }
             }
-        },changeIntervalSeconds);
+        };
+        Map<Runnable, Long> tasks = MapTask.computeIfAbsent(path, k -> new HashMap<>());
+        tasks.put(runnable, changeIntervalSeconds);
+    }
+
+    private int checkQuantity(String getQuantity){
+        int real_quantity;
+        try {
+            real_quantity = Integer.parseInt(getQuantity);
+        } catch (NumberFormatException e) {
+            real_quantity = 1;
+            LogRecord logRecord = new LogRecord(Level.SEVERE, "Failed to parse quantity: " + e.getMessage());
+            logRecord.setThrown(e);
+            plugin.getLogger().log(logRecord);
+        }
+        return real_quantity;
     }
 
     private ItemStack createItemStackFromMaterialInfo(MaterialMetadata materialMetadata, Player player) {
@@ -536,16 +554,8 @@ public class PlayerInteractionListener implements Listener {
             plugin.getLogger().warning("Invalid material name: " + materialMeta);
         } else {
             String quantityString = PlaceholderAPI.setPlaceholders(player, materialMetadata.getQuantity());
-            int quantity;
-            try {
-                quantity = Integer.parseInt(quantityString);
-            } catch (NumberFormatException e) {
-                quantity = 1;
-                LogRecord logRecord = new LogRecord(Level.SEVERE, "Failed to parse quantity: " + e.getMessage());
-                logRecord.setThrown(e);
-                plugin.getLogger().log(logRecord);
-            }
-            ItemStack itemStack = new ItemStack(mat, quantity);
+
+            ItemStack itemStack = new ItemStack(mat, checkQuantity(quantityString));
             ItemMeta meta = itemStack.getItemMeta();
 
 
@@ -620,9 +630,17 @@ public class PlayerInteractionListener implements Listener {
     }
 
     public void updates(String executor) {
-        cancelMaterialChangeTasks(true);
+        cancelAllMaterialChangeTasks();
+        MapTask.clear();
+        plugin.getParticleAnimation().RemoveAllTaskingParticles();
         materialInfoList.clear();
-        locationCommands.clear();
+        worldConfigInMemory.clear();
+        Component message = Component.text()
+                .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.DARK_AQUA))
+                .append(Component.text("[OptimizerHandler] ", NamedTextColor.LIGHT_PURPLE))
+                .append(Component.text("All Events is removed! ", NamedTextColor.RED))
+                .build();
+        Bukkit.getConsoleSender().sendMessage(message);
         List<Player> onlinePlayers = new ArrayList<>(plugin.getServer().getOnlinePlayers());
         if (plugin.getCustomConfig().getClearInventory()) {onlinePlayers.forEach(player -> player.getInventory().clear());}
         onlinePlayers.forEach(player -> {
@@ -654,7 +672,50 @@ public class PlayerInteractionListener implements Listener {
             }
         });
         loadAllResources();
+
+        Bukkit.getOnlinePlayers().forEach(player -> {
+            String key = findKeyByPlayer(playerInventory, player);
+            if (key != null) {
+                if (plugin.getChronometer().isRunChronometer(player)) plugin.getChronometer().stopChronometer(player);
+                plugin.getChronometer().stopChronometer(player);
+                setItems(player, key);
+            }
+        });
         runThreads();
+        worldConfig.getKeys(false).forEach(eventName->{
+            int CX = worldConfig.getInt(eventName+".chunkX");
+            int CZ = worldConfig.getInt(eventName+".chunkZ");
+            World world = Bukkit.getWorld(Objects.requireNonNull(worldConfig.getString(eventName+".world")));
+            if (world != null && world.isChunkLoaded(CX, CZ)){
+                double x = worldConfig.getDouble(eventName + ".x");
+                double y = worldConfig.getDouble(eventName + ".y");
+                double z = worldConfig.getDouble(eventName + ".z");
+                Block block = world.getBlockAt(new Location(world, x, y, z));
+                int cx = block.getChunk().getX();
+                int cz = block.getChunk().getZ();
+                List <String> command = worldConfig.getStringList(eventName + ".command");
+                List<String> interaction = worldConfig.getStringList(eventName + ".action");
+                List<?> metaAnimation = Objects.requireNonNull(worldConfig.getList(eventName+".animation"));
+                String animation = metaAnimation.get(0).toString();
+                int radius = Integer.parseInt(metaAnimation.get(1).toString());
+                List<Object> locationData = new ArrayList<>();
+                Collections.addAll(locationData, block, command, cx, cz, world, metaAnimation);
+                locationData.addAll(interaction);
+                worldConfigInMemory.put(eventName, locationData);
+                plugin.getParticleAnimation().playAnimation(eventName, block, TypesAnimation.valueOf(animation), radius);
+                System.out.println(worldConfigInMemory.get(eventName));
+                printMessage(eventName, block, world, true);
+            }
+        });
+    }
+
+    public static String findKeyByPlayer(Map<String, List<Player>> playerInventory, Player player) {
+        for (Map.Entry<String, List<Player>> entry : playerInventory.entrySet()) {
+            if (entry.getValue().contains(player)) {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 
     private int checksSlotException(int slot){
@@ -681,11 +742,93 @@ public class PlayerInteractionListener implements Listener {
         return slot;
     }
 
+    private void checkActions(Block block, String text, Player player) {
+        for (List<Object> commandData : worldConfigInMemory.values()) {
+            Block storedBlock = (Block) commandData.get(0);
+            if (block.equals(storedBlock) && commandData.contains(text)) {
+                if (player != null && player.isOnline() && player.getWorld().equals(block.getWorld())) {
+                    Object obj = commandData.get(1);
+                    List<String> commands = safaCastList(obj, String.class);
+                    for (String command : commands){
+                        plugin.getServer().dispatchCommand(player, command);
+                    }
+                }
+            }
+        }
+    }
+
+    private void checkActions(Block block, String text) {
+        for (List<Object> commandData : worldConfigInMemory.values()) {
+            Block storedBlock = (Block) commandData.get(0);
+            if (block.equals(storedBlock) && commandData.contains(text)) {
+                Object obj = commandData.get(1);
+                List<String> commands = safaCastList(obj, String.class);
+                for (String command : commands){
+                    plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), command);
+                }
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> List<T> safaCastList(Object obj, Class<T> tClass){
+        if (obj instanceof List<?>){
+            List<?> list = (List<?>) obj;
+            for (Object element : list){
+                if (!tClass.isInstance(element)){
+                    return null;
+                }
+            }
+            return (List<T>) list;
+        }
+        return null;
+    }
+
+    @EventHandler
+    public void onBlockBurned(BlockBurnEvent event) {
+        Block burnedBlock = event.getBlock();
+        checkActions(burnedBlock, "on_block_burned");
+    }
+
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         Block clickedBlock = event.getClickedBlock();
         ItemStack item = event.getItem();
+
+        //Blocks
+        if (clickedBlock != null) {
+            for (List<Object> commandData : worldConfigInMemory.values()) {
+                Block block = (Block) commandData.get(0);
+                if (clickedBlock.equals(block)) {
+                    if (commandData.contains("on_block_state_player_change")) {
+                        Object obj = commandData.get(1);
+                        List<String> commands = safaCastList(obj, String.class);
+                        for (String command : commands){
+                            plugin.getServer().dispatchCommand(player, command);
+                        }
+                    }
+                    if ((commandData.contains("on_click") && event.getAction() == Action.LEFT_CLICK_BLOCK) ||
+                            (commandData.contains("on_right_click") && event.getAction() == Action.RIGHT_CLICK_BLOCK) ||
+                            (commandData.contains("on_left_click") && event.getAction() == Action.LEFT_CLICK_BLOCK)) {
+                        Object obj = commandData.get(1);
+                        List<String> commands = safaCastList(obj, String.class);
+                        for (String command : commands){
+                            plugin.getServer().dispatchCommand(player, command);
+                        }
+
+                    } else if ((commandData.contains("on_right_click") && event.getAction() == Action.RIGHT_CLICK_AIR) ||
+                            (commandData.contains("on_left_click") && event.getAction() == Action.LEFT_CLICK_AIR)) {
+                        Object obj = commandData.get(1);
+                        List<String> commands = safaCastList(obj, String.class);
+                        for (String command : commands){
+                            plugin.getServer().dispatchCommand(player, command);
+                        }
+                    }
+                }
+            }
+        }
+
 
         if (item != null) {
             ItemMeta meta = item.getItemMeta();
@@ -716,7 +859,10 @@ public class PlayerInteractionListener implements Listener {
             if (meta != null && meta.getPersistentDataContainer().has(key2_all, PersistentDataType.STRING)){
                 String commandOnClick = meta.getPersistentDataContainer().get(key2_all, PersistentDataType.STRING);
                 if (commandOnClick != null) {
-                    Bukkit.dispatchCommand(event.getPlayer(), PlaceholderAPI.setPlaceholders(player, commandOnClick));
+                    String[] commands = commandOnClick.split(",\\s*");
+                    for (String command : commands) {
+                        Bukkit.dispatchCommand(event.getPlayer(), PlaceholderAPI.setPlaceholders(player, command));
+                    }
                 }
             }
 
@@ -732,7 +878,10 @@ public class PlayerInteractionListener implements Listener {
                 if (meta != null && meta.getPersistentDataContainer().has(key2_Right, PersistentDataType.STRING)) {
                     String commandOnClick = meta.getPersistentDataContainer().get(key2_Right, PersistentDataType.STRING);
                     if (commandOnClick != null) {
-                        Bukkit.dispatchCommand(event.getPlayer(), PlaceholderAPI.setPlaceholders(player, commandOnClick));
+                        String[] commands = commandOnClick.split(",\\s*");
+                        for (String command : commands) {
+                            Bukkit.dispatchCommand(event.getPlayer(), PlaceholderAPI.setPlaceholders(player, command));
+                        }
                     }
                 }
             }
@@ -741,12 +890,54 @@ public class PlayerInteractionListener implements Listener {
                 if (meta != null && meta.getPersistentDataContainer().has(key2_Left, PersistentDataType.STRING)) {
                     String commandOnClick = meta.getPersistentDataContainer().get(key2_Left, PersistentDataType.STRING);
                     if (commandOnClick != null) {
-                        Bukkit.dispatchCommand(event.getPlayer(), PlaceholderAPI.setPlaceholders(player, commandOnClick));
+                        String[] commands = commandOnClick.split(",\\s*");
+                        for (String command : commands) {
+                            Bukkit.dispatchCommand(event.getPlayer(), PlaceholderAPI.setPlaceholders(player, command));
+                        }
                     }
                 }
             }
         }
     }
+
+    @EventHandler
+    public void onBlockBreak(BlockBreakEvent event) {
+        Player player = event.getPlayer();
+        Block block = event.getBlock();
+        checkActions(block, "on_block_break", player);
+    }
+
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
+        Block block = event.getBlock();
+        Player player = event.getPlayer();
+        checkActions(block, "on_block_place", player);
+    }
+
+    @EventHandler
+    public void onBlockExplode(BlockExplodeEvent event) {
+        Block block = event.getBlock();
+        checkActions(block, "on_block_explode");
+    }
+
+    @EventHandler
+    public void onBlockDecay(LeavesDecayEvent event) {
+        Block block = event.getBlock();
+        checkActions(block, "on_block_decay");
+    }
+
+    @EventHandler
+    public void onBlockGrow(BlockGrowEvent event) {
+        Block block = event.getBlock();
+        checkActions(block, "on_block_grow");
+    }
+
+    @EventHandler
+    public void onBlockRedstone(BlockRedstoneEvent event) {
+        Block block = event.getBlock();
+        checkActions(block, "on_block_redstone_change");
+    }
+
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
@@ -766,17 +957,15 @@ public class PlayerInteractionListener implements Listener {
             Block block = world.getBlockAt(new Location(world, x, y, z));
             int cx = block.getChunk().getX();
             int cz = block.getChunk().getZ();
-            String command = worldConfig.getString(eventName + ".command");
-            String interaction = worldConfig.getString(eventName + ".action");
-            locationCommands.put(eventName ,new Object[]{block, command, interaction, cx, cz, world});
-            Component addMessage = Component.text()
-                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.DARK_AQUA))
-                    .append(Component.text("[OptimizerHandler] ", NamedTextColor.LIGHT_PURPLE))
-                    .append(Component.text("Registered "+ eventName + ":", NamedTextColor.GREEN))
-                    .append(Component.text(" X: "+block.getX()+ " Y: "+block.getY()+ " Z: "+block.getZ() ,NamedTextColor.WHITE))
-                    .append(Component.text(" [" + world.getName() + "] ", NamedTextColor.AQUA))
-                    .build();
-            Bukkit.getConsoleSender().sendMessage(addMessage);
+            List<String> command = worldConfig.getStringList(eventName + ".command");
+            List<String> interaction = worldConfig.getStringList(eventName + ".action");
+            List<?> animation = worldConfig.getList(eventName + ".animation");
+            List<Object> locationData = new ArrayList<>();
+            Collections.addAll(locationData, block, command, cx, cz, world, animation);
+            locationData.addAll(interaction);
+            worldConfigInMemory.put(eventName, locationData);
+            System.out.println(worldConfigInMemory.get(eventName));
+            printMessage(eventName, block, world, true);
         });
     }
 
@@ -785,24 +974,39 @@ public class PlayerInteractionListener implements Listener {
         int chunkX = event.getChunk().getX();
         int chunkZ = event.getChunk().getZ();
         World world = event.getWorld();
-        locationCommands.entrySet().removeIf(entry -> {
-            Object[] values = entry.getValue();
-            int CCX = (int) (values[3]);
-            int CCZ = (int) (values[4]);
-            World wrd = ((World) values[5]);
+        worldConfigInMemory.entrySet().removeIf(entry -> {
+            List<Object> values = entry.getValue();
+            int CCX = (int) (values.get(2));
+            int CCZ = (int) (values.get(3));
+            World wrd = ((World) values.get(4));
             if (chunkX == CCX && chunkZ == CCZ && world.equals(wrd)) {
                 String eventName = entry.getKey();
-                Component quitMessage = Component.text()
-                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.DARK_AQUA))
-                        .append(Component.text("[OptimizerHandler] ", NamedTextColor.LIGHT_PURPLE))
-                        .append(Component.text("Unregistered "+ eventName + ":", NamedTextColor.RED))
-                        .append(Component.text(" X: "+((Block) values[0]).getLocation().getX()+ " Y: "+((Block) values[0]).getLocation().getY()+ " Z: "+((Block) values[0]).getLocation().getZ() ,NamedTextColor.WHITE))
-                        .append(Component.text(" [" + world.getName() + "] ", NamedTextColor.AQUA))
-                        .build();
-                Bukkit.getConsoleSender().sendMessage(quitMessage);
+                plugin.getParticleAnimation().RemoveTaskingParticles(eventName);
+                printMessage(eventName, ((Block) values.get(0)), wrd, false);
                 return true;
             }
             return false;
         });
+    }
+
+    @EventHandler
+    public void onPlayerDisconnect(PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+        playerInventory.values().forEach(players -> players.remove(player));
+        if (plugin.getChronometer().isRunChronometer(player)) plugin.getChronometer().stopChronometer(player);
+        cancelThreadsInNotUse();
+    }
+
+    public void printMessage(String eventName, Block block, World world, boolean registered) {
+        NamedTextColor color = registered ? NamedTextColor.GREEN : NamedTextColor.RED;
+        String action = registered ? "Registered" : "Unregistered";
+        Component message = Component.text()
+                .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.DARK_AQUA))
+                .append(Component.text("[OptimizerHandler] ", NamedTextColor.LIGHT_PURPLE))
+                .append(Component.text(action + " " + eventName + ":", color))
+                .append(Component.text(" X: " + block.getX() + " Y: " + block.getY() + " Z: " + block.getZ(), NamedTextColor.WHITE))
+                .append(Component.text(" [" + world.getName() + "] ", NamedTextColor.AQUA))
+                .build();
+        Bukkit.getConsoleSender().sendMessage(message);
     }
 }

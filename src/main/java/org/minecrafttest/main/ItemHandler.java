@@ -8,6 +8,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.minecrafttest.main.Command.GameCommandExecutor;
 import org.minecrafttest.main.Config.Config;
 import org.minecrafttest.main.Listener.PlayerInteractionListener;
+import org.minecrafttest.main.Watches.Chronometer;
+import org.minecrafttest.main.Watches.Clock;
+import org.minecrafttest.main.Particles.ParticleAnimation;
+import org.minecrafttest.main.Particles.ParticleListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +23,10 @@ public class ItemHandler extends JavaPlugin {
     private Config pluginConfig;
     private PlayerInteractionListener listener;
     private GameCommandExecutor executor;
+    private ParticleAnimation particleAnimation;
+    private Chronometer chronometer;
+    private Clock clock;
+
     @Override
     public void onEnable() {
         instance = this;
@@ -26,6 +34,10 @@ public class ItemHandler extends JavaPlugin {
         pluginConfig.loadConfig();
         listener = new PlayerInteractionListener();
         executor = new GameCommandExecutor();
+        particleAnimation = new ParticleAnimation();
+        chronometer = new Chronometer(this);
+        clock = new Clock(this);
+        Bukkit.getServer().getPluginManager().registerEvents(new ParticleListener(), this);
         Bukkit.getServer().getPluginManager().registerEvents(listener, this);
         List<String> aliases = new ArrayList<>();
         aliases.add("ih");
@@ -43,7 +55,7 @@ public class ItemHandler extends JavaPlugin {
     }
     @Override
     public void onDisable() {
-        listener.cancelMaterialChangeTasks(true);
+        listener.cancelAllMaterialChangeTasks();
         Component enableMessage = Component.text()
                 .append(Component.text("[" + this.getName() + "] ", NamedTextColor.BLUE))
                 .append(Component.text("Close " + this.getName() , NamedTextColor.BLUE))
@@ -53,12 +65,11 @@ public class ItemHandler extends JavaPlugin {
     public Config getCustomConfig(){
         return pluginConfig;
     }
-    public PlayerInteractionListener getListener(){
-        return listener;
-    }
-    public GameCommandExecutor getExecutor(){
-        return executor;
-    }
+    public PlayerInteractionListener getListener(){return listener;}
+    public ParticleAnimation getParticleAnimation(){return particleAnimation;}
+    public GameCommandExecutor getExecutor(){return executor;}
+    public Chronometer getChronometer(){return chronometer;}
+    public Clock getClock(){return clock;}
     public static ItemHandler getPlugin() {
         return instance;
     }

@@ -3,7 +3,7 @@ version: '${project.version}'
 main: org.minecrafttest.main.ItemHandler
 api-version: '1.20'
 folia-supported: true
-depend: [PlaceholderAPI]
+softdepend: [PlaceholderAPI, ProtocolLib]
 
 commands:
   ItemHandler:

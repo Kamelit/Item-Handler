@@ -21,13 +21,9 @@ public class Checkpoint {
         this.players = new HashMap<>();
     }
 
-    public String getMap (){
-        return map;
-    }
+    //public String getMap (){return map;}
 
-    public String getId (){
-        return id;
-    }
+    //public String getId (){return id;}
 
     public Location getLocation() {
         return location;

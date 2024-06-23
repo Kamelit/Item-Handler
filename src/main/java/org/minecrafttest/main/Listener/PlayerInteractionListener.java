@@ -8,6 +8,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.Powerable;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
@@ -73,7 +74,9 @@ public class PlayerInteractionListener implements Listener {
             playerInventory.putIfAbsent(key, new ArrayList<>());
             taskMap.putIfAbsent(key, new ArrayList<>());
         }
+        plugin.getParkour().loadCheckpoints();
         worldConfig = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "blocks_events/world.yml"));
+        plugin.getParkour().parkourConfiguration = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(),"parkour/parkour.yml"));
         if (getConfigurationName()) return;
 
         for (String path : yamlConfig.getKeys(false)) {
@@ -633,6 +636,7 @@ public class PlayerInteractionListener implements Listener {
         cancelAllMaterialChangeTasks();
         MapTask.clear();
         plugin.getParticleAnimation().RemoveAllTaskingParticles();
+        plugin.getParkour().ClearCheckpoints();
         materialInfoList.clear();
         worldConfigInMemory.clear();
         Component message = Component.text()
@@ -762,7 +766,8 @@ public class PlayerInteractionListener implements Listener {
             Block storedBlock = (Block) commandData.get(0);
             if (block.equals(storedBlock) && commandData.contains(text)) {
                 Object obj = commandData.get(1);
-                List<String> commands = safaCastList(obj, String.class);
+                Class<String> type = String.class;
+                List<String> commands = safaCastList(obj, type);
                 for (String command : commands){
                     plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), command);
                 }
@@ -790,6 +795,7 @@ public class PlayerInteractionListener implements Listener {
         checkActions(burnedBlock, "on_block_burned");
     }
 
+
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
@@ -801,13 +807,16 @@ public class PlayerInteractionListener implements Listener {
             for (List<Object> commandData : worldConfigInMemory.values()) {
                 Block block = (Block) commandData.get(0);
                 if (clickedBlock.equals(block)) {
-                    if (commandData.contains("on_block_state_player_change")) {
-                        Object obj = commandData.get(1);
-                        List<String> commands = safaCastList(obj, String.class);
-                        for (String command : commands){
-                            plugin.getServer().dispatchCommand(player, command);
+                    /*if (commandData.contains("on_block_state_player_change") && clickedBlock.getType().name().contains("PRESSURE_PLATE")) {
+                        Powerable plate = (Powerable) clickedBlock.getBlockData();
+                        if (plate.isPowered()) {
+                            Object obj = commandData.get(1);
+                            List<String> commands = safaCastList(obj, String.class);
+                            for (String command : commands) {
+                                plugin.getServer().dispatchCommand(player, command);
+                            }
                         }
-                    }
+                    }*/
                     if ((commandData.contains("on_click") && event.getAction() == Action.LEFT_CLICK_BLOCK) ||
                             (commandData.contains("on_right_click") && event.getAction() == Action.RIGHT_CLICK_BLOCK) ||
                             (commandData.contains("on_left_click") && event.getAction() == Action.LEFT_CLICK_BLOCK)) {
@@ -828,7 +837,6 @@ public class PlayerInteractionListener implements Listener {
                 }
             }
         }
-
 
         if (item != null) {
             ItemMeta meta = item.getItemMeta();
@@ -893,6 +901,30 @@ public class PlayerInteractionListener implements Listener {
                         String[] commands = commandOnClick.split(",\\s*");
                         for (String command : commands) {
                             Bukkit.dispatchCommand(event.getPlayer(), PlaceholderAPI.setPlaceholders(player, command));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @EventHandler
+    public void onPlayerMove(PlayerMoveEvent event) {
+        Player player = event.getPlayer();
+        Block blockUnderPlayer = player.getLocation().getBlock();
+
+        if (blockUnderPlayer.getType().name().contains("PRESSURE_PLATE")) {
+            for (List<Object> commandData : worldConfigInMemory.values()) {
+                Block block = (Block) commandData.get(0);
+                if (blockUnderPlayer.equals(block)) {
+                    if (commandData.contains("on_block_state_player_change")) {
+                        Powerable plate = (Powerable) blockUnderPlayer.getBlockData();
+                        if (plate.isPowered()) {
+                            Object obj = commandData.get(1);
+                            List<String> commands = safaCastList(obj, String.class);
+                            for (String command : commands) {
+                                plugin.getServer().dispatchCommand(player, command);
+                            }
                         }
                     }
                 }

@@ -7,10 +7,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class Clock implements Runnable {
     private ScheduledTask task;
-    private final JavaPlugin plugin;
 
     public Clock(JavaPlugin plugin) {
-        this.plugin = plugin;
     }
 
     @Override

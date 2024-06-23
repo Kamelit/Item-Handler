@@ -7,8 +7,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 
 public class Chronometer implements Runnable {
@@ -18,6 +22,7 @@ public class Chronometer implements Runnable {
     private final ConcurrentHashMap<UUID, Boolean> playerRunning;
     private final ConcurrentHashMap<UUID, Boolean> playerCountdownMode;
     private final ConcurrentHashMap<UUID, Integer> playerMaxTimeMillis;
+    private final Set<Player> playersInChronometer;
     private static final int RESET_INTERVAL = 24 * 60 * 60 * 1000;
     private static final int BLINK_THRESHOLD = 7500;
     private static final int TASK_INTERVAL = 123;
@@ -31,26 +36,21 @@ public class Chronometer implements Runnable {
         playerRunning = new ConcurrentHashMap<>();
         playerCountdownMode = new ConcurrentHashMap<>();
         playerMaxTimeMillis = new ConcurrentHashMap<>();
+        playersInChronometer = new HashSet<>();
         blinkTick = 0;
     }
 
-    public void startChronometer(Player player) {
-        startChronometer(player, 0, 30, false);
-    }
+    public void startChronometer(Player player) {startChronometer(player, 0, 30, false);}
 
-    public void startChronometer(Player player, boolean countdownMode) {
-        startChronometer(player, 0, 30, countdownMode);
-    }
+    public void startChronometer(Player player, boolean countdownMode) {startChronometer(player, 0, 30, countdownMode);}
 
-    public void startChronometer(Player player, int minutes, int seconds) {
-        startChronometer(player, minutes, seconds, false);
-    }
+    public void startChronometer(Player player, int minutes, int seconds) {startChronometer(player, minutes, seconds, false);}
 
     public void startChronometer(Player player, int minutes, int seconds, boolean countdownMode) {
         UUID playerUUID = player.getUniqueId();
 
         if (playerRunning.getOrDefault(playerUUID, false)) {
-            player.sendMessage("El cronómetro ya está en marcha.");
+            //player.sendMessage("El cronómetro ya está en marcha.");
             return;
         }
 
@@ -63,8 +63,9 @@ public class Chronometer implements Runnable {
         playerRunning.put(playerUUID, true);
         playerCountdownMode.put(playerUUID, countdownMode);
         playerMaxTimeMillis.put(playerUUID, maxTimeMillis);
+        playersInChronometer.add(player);
 
-        player.sendMessage("El cronómetro ha comenzado en " + (countdownMode ? "modo cuenta regresiva." : "modo cuenta progresiva.") + " con un tiempo límite de " + minutes + " minutos y " + seconds + " segundos.");
+        //player.sendMessage("El cronómetro ha comenzado en " + (countdownMode ? "modo cuenta regresiva." : "modo cuenta progresiva.") + " con un tiempo límite de " + minutes + " minutos y " + seconds + " segundos.");
 
         if (task == null || task.isCancelled()) {
             task = Bukkit.getAsyncScheduler().runAtFixedRate(plugin, task1 -> run(), 0, TASK_INTERVAL, TimeUnit.MILLISECONDS);
@@ -75,7 +76,7 @@ public class Chronometer implements Runnable {
         UUID playerUUID = player.getUniqueId();
 
         if (!playerRunning.getOrDefault(playerUUID, false)) {
-            player.sendMessage("El cronómetro no está en marcha.");
+            //player.sendMessage("El cronómetro no está en marcha.");
             return;
         }
 
@@ -85,8 +86,9 @@ public class Chronometer implements Runnable {
         playerElapsedTime.remove(playerUUID);
         playerCountdownMode.remove(playerUUID);
         playerMaxTimeMillis.remove(playerUUID);
+        playersInChronometer.remove(player);
 
-        player.sendMessage("El cronómetro se ha detenido y los datos han sido limpiados.");
+        //player.sendMessage("El cronómetro se ha detenido y los datos han sido limpiados.");
 
         // Verifica si ya no hay cronómetros en ejecución
         if (playerRunning.values().stream().noneMatch(Boolean::booleanValue)) {
@@ -141,12 +143,15 @@ public class Chronometer implements Runnable {
                         player.sendActionBar(Component.text(String.format("%02d:%02d:%03d", minutes, seconds, milliseconds)).color(TextColor.color(255, 0, 0)));
                         player.sendMessage("El cronómetro se ha detenido automáticamente.");
                     }
+
                     // Limpieza de datos del jugador
                     playerRunning.remove(playerUUID);
                     playerStartTime.remove(playerUUID);
                     playerElapsedTime.remove(playerUUID);
                     playerCountdownMode.remove(playerUUID);
                     playerMaxTimeMillis.remove(playerUUID);
+                    playersInChronometer.remove(player);
+
                     continue;
                 } else if (!isCountdown && elapsed >= maxTimeMillis) {
                     playerRunning.put(playerUUID, false);
@@ -158,12 +163,14 @@ public class Chronometer implements Runnable {
                         player.sendActionBar(Component.text(String.format("%02d:%02d:%03d", minutes, seconds, milliseconds)).color(TextColor.color(255, 0, 0)));
                         player.sendMessage("El cronómetro se ha detenido automáticamente.");
                     }
+
                     // Limpieza de datos del jugador
                     playerRunning.remove(playerUUID);
                     playerStartTime.remove(playerUUID);
                     playerElapsedTime.remove(playerUUID);
                     playerCountdownMode.remove(playerUUID);
                     playerMaxTimeMillis.remove(playerUUID);
+                    playersInChronometer.remove(player);
                     continue;
                 }
 
@@ -208,5 +215,9 @@ public class Chronometer implements Runnable {
         }
 
         return TextColor.color(red, green, 0);
+    }
+
+    public Set<Player> getPlayersInChronometer(){
+        return playersInChronometer;
     }
 }

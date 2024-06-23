@@ -8,6 +8,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -82,14 +83,32 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
 
         if (args[0].equalsIgnoreCase("Chronometer") && args[1].equalsIgnoreCase("stop") ){
             Player player = (Player) sender;
+            //plugin.getParkour().RemoveCheckPointPlayer(player);
             plugin.getChronometer().stopChronometer(player);
             return true;
         }
+
+
 
         if (args[0].equalsIgnoreCase("Chronometer") && args[1].equalsIgnoreCase("restart") ){
             Player player = (Player) sender;
             if (plugin.getChronometer().isRunChronometer(player)) plugin.getChronometer().stopChronometer(player);
             plugin.getChronometer().startChronometer(player, 5,0);
+            //plugin.getParkour().RemoveCheckPointPlayer(player);
+            //plugin.getParkour().getPlayerLastCheckpoint().remove(player);
+            ConfigurationSection configurationSection = listener.worldConfig.getConfigurationSection("Parkour");
+            if (configurationSection != null){
+                int x = configurationSection.getInt("x");
+                int y = configurationSection.getInt("y");
+                int z = configurationSection.getInt("z");
+                String name = configurationSection.getString("world");
+                World world = Bukkit.getWorld(Objects.requireNonNull(name));
+                float yaw = player.getLocation().getYaw();
+                float pitch = player.getLocation().getPitch();
+                Location location = new Location(world,x,y,z, yaw, pitch);
+                location.clone().add(0.5, 0.5, 0.5);
+                player.teleportAsync(location);
+            }
             return true;
         }
 
@@ -348,6 +367,190 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             }
         }
 
+        if (args.length == 4 && args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("name")){
+            if (plugin.getParkour().RegisterParkourName(args[3])){
+                sender.sendMessage("ok");
+            }else {
+                sender.sendMessage("nope");
+            }
+            return true;
+        }
+
+        if (args.length >= 4 && args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("minimums_y")){
+            if (args.length > 4 && plugin.getParkour().parkourConfiguration.contains(args[3])){
+                ConfigurationSection parkourSection = plugin.getParkour().parkourConfiguration.getConfigurationSection(args[3]);
+                if (args.length > 5 && parkourSection != null){
+                    if (args.length == 6){
+                        if (Objects.requireNonNull(parkourSection).contains(args[4])){
+                            try {
+                                int index = 5   ;
+                                if (args[index].startsWith("~")) {
+                                    String offsetString = args[index].substring(1);
+                                    if (offsetString.isEmpty()) {
+                                        y = ((Player) sender).getLocation().getY();
+                                    } else {
+                                        double offset = Double.parseDouble(offsetString);
+                                        y = ((Player) sender).getLocation().getY() + offset;
+                                    }
+                                } else {
+                                    y = Double.parseDouble(args[index]);
+                                }
+
+                                if (plugin.getParkour().RegisterParkourMinFallInY(args[3], args[4], (int) y)){
+                                    sender.sendMessage("Registered Min!");
+                                }else {
+                                    sender.sendMessage("Min_y < Checkpoint");
+                                }
+
+                            }catch (NumberFormatException e) {
+                                sender.sendMessage(Component.text()
+                                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
+                                        .append(Component.text("Invalid coordinates provided.", NamedTextColor.RED))
+                                        .build());
+                            }
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        if (args.length > 2 && args[0].equalsIgnoreCase("parkour") && args[1].equalsIgnoreCase("start")) {
+            String parkourName = args[2];
+            if (plugin.getParkour().parkourConfiguration.contains(parkourName)) {
+
+                Player player = (Player) sender;
+
+                plugin.getParkour().setPlayerParkour(player, args[2]);
+                plugin.getParkour().loadAnimationChecks(player);
+                //sender.sendMessage("Parkour " + parkourName + " iniciado.");
+            } else {
+                sender.sendMessage(parkourName + " no existe.");
+            }
+            return true;
+        }
+
+        if (args.length > 2 && args[0].equalsIgnoreCase("parkour") && args[1].equalsIgnoreCase("restart")) {
+            String parkourName = args[2];
+            if (plugin.getParkour().parkourConfiguration.contains(args[2])) {
+                Player player = (Player) sender;
+                plugin.getParkour().RemoveCheckPointPlayer(args[2], player);
+                plugin.getParkour().removePlayerParkour(player, args[2]);
+                plugin.getParkour().getPlayerLastCheckpoint().remove(player);
+                plugin.getParkour().setPlayerParkour(player, args[2]);
+                plugin.getParkour().loadAnimationChecks(player);
+                //sender.sendMessage("Parkour " + parkourName + " Reiniciado.");
+            } else {
+                sender.sendMessage(parkourName + " no existe.");
+            }
+            return true;
+        }
+
+        if (args.length > 2 && args[0].equalsIgnoreCase("parkour") && args[1].equalsIgnoreCase("finish")) {
+            String parkourName = args[2];
+            if (plugin.getParkour().parkourConfiguration.contains(args[2])) {
+
+                Player player = (Player) sender;
+                plugin.getParkour().RemoveCheckPointPlayer(parkourName, player);
+                plugin.getParkour().removePlayerParkour(player, parkourName);
+
+                //sender.sendMessage("Parkour " + parkourName + " Fin.");
+            } else {
+                sender.sendMessage(parkourName + " no existe.");
+            }
+            return true;
+        }
+
+        if (args.length > 3 && args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("checkpoint")){
+            if (args.length > 4 && plugin.getParkour().parkourConfiguration.contains(args[3])){
+                int index = 4;
+                try {
+                    Player targetPlayer = Bukkit.getPlayer(args[index]);
+                    if (targetPlayer != null) {
+                        x = targetPlayer.getLocation().getX();
+                        y = targetPlayer.getLocation().getY();
+                        z = targetPlayer.getLocation().getZ();
+                        if (args.length >= index+2){
+                            String nameWorld = args[index+1];
+
+                            if (plugin.getParkour().RegisterParkour(args[3],nameWorld, (int) x, (int) y, (int) z )){
+                                sender.sendMessage("Registered Parkour Checkpoint");
+                            }else {
+                                sender.sendMessage("No Registered");
+                            }
+
+                        }else {
+                            sender.sendMessage(Component.text()
+                                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
+                                    .append(Component.text("Incorrect Syntax's", NamedTextColor.RED))
+                                    .build());
+                        }
+                    }else {
+                        if (args[index].startsWith("~")) {
+                            String offsetString = args[index].substring(1);
+                            if (offsetString.isEmpty()) {
+                                x = ((Player) sender).getLocation().getX();
+                            } else {
+                                double offset = Double.parseDouble(offsetString);
+                                x = ((Player) sender).getLocation().getX() + offset;
+                            }
+                        } else {
+                            x = Double.parseDouble(args[index]);
+                        }
+                        if (args[index+1].startsWith("~")) {
+                            String offsetString = args[index+1].substring(1);
+                            if (offsetString.isEmpty()) {
+                                y = ((Player) sender).getLocation().getY();
+                            } else {
+                                double offset = Double.parseDouble(offsetString);
+                                y = ((Player) sender).getLocation().getY() + offset;
+                            }
+                        } else {
+                            y = Double.parseDouble(args[index+1]);
+                        }
+
+                        if (args[index+2].startsWith("~")) {
+                            String offsetString = args[index+2].substring(1);
+                            if (offsetString.isEmpty()) {
+                                z = ((Player) sender).getLocation().getZ();
+                            } else {
+                                double offset = Double.parseDouble(offsetString);
+                                z = ((Player) sender).getLocation().getZ() + offset;
+                            }
+                        } else {
+                            z = Double.parseDouble(args[index+2]);
+                        }
+                        if (args.length >= index+4){
+                            //String typeAction = args[6];
+                            String nameWorld = args[index+3];
+
+                            if (plugin.getParkour().RegisterParkour(args[3],nameWorld, (int) x, (int) y, (int) z )){
+                                sender.sendMessage("Registered Parkour Checkpoint");
+                            }else {
+                                sender.sendMessage("No Registered");
+                            }
+                        }
+                        else {
+                            sender.sendMessage(Component.text()
+                                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
+                                    .append(Component.text("Incorrect Syntax's", NamedTextColor.RED))
+                                    .build());
+                        }
+                    }
+                    return true;
+
+                } catch (NumberFormatException e) {
+                    sender.sendMessage(Component.text()
+                            .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
+                            .append(Component.text("Invalid coordinates provided.", NamedTextColor.RED))
+                            .build());
+                    return true;
+                }
+            }else {
+                sender.sendMessage("Error");
+                return true;
+            }
+        }
 
         Component errorMessage = Component.text()
                 .append(Component.text("Command not recognized: ", NamedTextColor.RED))
@@ -360,6 +563,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
         sender.sendMessage(errorMessage);
         return false;
     }
+
 
 
     private boolean registerEventByCommand(@NotNull CommandSender sender, String[] args, String nameWorld, int index) {
@@ -529,7 +733,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             return files;
         } else if (args.length >= 2 && args[0].equalsIgnoreCase("register")) {
             if (args.length == 2) {
-                return Arrays.asList("event","type_action","animation", "new_command_in_event");
+                return Arrays.asList("event","type_action","animation", "new_command_in_event", "parkour");
             }
             if (args.length == 3 && args[1].equalsIgnoreCase("new_command_in_event")) {
                 return new ArrayList<>(listener.worldConfig.getKeys(false));
@@ -559,8 +763,97 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                         .collect(Collectors.toList());
             }
 
+            if (args.length == 3 && args[1].equalsIgnoreCase("parkour") ){
+                return Arrays.asList("checkpoint", "name", "minimums_y");
+            }
+
+            if (args.length == 4 && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("name")){
+                int c = 1;
+                String name = "Parkour_";
+                while (plugin.getParkour().parkourConfiguration.contains(name+c)){
+                    c++;
+                }
+                name = name+c;
+                return Collections.singletonList(name);
+            }
+
+
+            if (args.length == 4 && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("checkpoint")){
+                return new ArrayList<>(plugin.getParkour().parkourConfiguration.getKeys(false));
+            }
+
+            if (args.length > 3 && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("checkpoint") && plugin.getParkour().parkourConfiguration.contains(args[3])){
+                int index = 5;
+                return cordsParkour(args[4],sender,args,index);
+            }
+
+            if (args.length >= 4 && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("minimums_y")){
+
+                if (args.length == 4){
+                    return new ArrayList<>(plugin.getParkour().parkourConfiguration.getKeys(false));
+                }
+                if (plugin.getParkour().parkourConfiguration.contains(args[3]) && args.length == 5){
+                    ConfigurationSection parkourSection = plugin.getParkour().parkourConfiguration.getConfigurationSection(args[3]);
+                    if (parkourSection != null) {
+                        return new ArrayList<>(parkourSection.getKeys(false));
+                    }
+                }
+                if (args.length == 6){
+                    ConfigurationSection parkourSection = plugin.getParkour().parkourConfiguration.getConfigurationSection(args[3]);
+                    if (Objects.requireNonNull(parkourSection).contains(args[4])){
+                        Player player = (Player) sender;
+                        return Arrays.asList(String.valueOf(player.getLocation().getY()), "~", String.valueOf(parkourSection.getInt("y")));
+                    }
+                }
+            }
+
         }
         return new ArrayList<>();
+    }
+
+    private List<String> cordsParkour(String partialInput, CommandSender sender, String[] args, int index){
+        List<String> suggestions = Bukkit.getServer().getOnlinePlayers().stream()
+                .map(Player::getName)
+                .filter(playerName -> playerName.toLowerCase().startsWith(partialInput.toLowerCase()))
+                .collect(Collectors.toList());
+
+        if (sender instanceof Player) {
+            Player player = (Player) sender;
+            Location location = player.getLocation();
+            x = location.getX();
+            y = location.getY();
+            z = location.getZ();
+
+            suggestions.addAll(Arrays.asList(
+                    String.format("%.2f", x),
+                    String.format("%.2f %.2f", x, y),
+                    String.format("%.2f %.2f %.2f", x, y, z),
+                    "~",
+                    "~ ~",
+                    "~ ~ ~"
+            ));
+
+            String lastArg = args[args.length - 1];
+            Player targetPlayer = Bukkit.getServer().getPlayer(args[index-1]);
+            if (partialInput.isEmpty()) {
+                return suggestions;
+            } else if (targetPlayer != null) {
+                if (args.length == index) {
+                    return Bukkit.getServer().getOnlinePlayers().stream().map(Player::getName).filter(playerName -> playerName.toLowerCase().startsWith(partialInput.toLowerCase())).collect(Collectors.toList());
+                }else if (args.length == index+1) {
+                    return Bukkit.getWorlds().stream().map(World::getName).collect(Collectors.toList());
+                }
+            } else if (args.length == index && lastArg.matches("^(-?\\d*\\.?\\d+|~)$")) {
+                return handleArgs(args[args.length - 1], y, z);
+            } else if (args.length == index+1 && lastArg.matches("^(-?\\d*\\.?\\d+|~)$")) {
+                return handleArgs(args[args.length - 1], z);
+            } else if (args.length == index+2 && lastArg.matches("^(-?\\d*\\.?\\d+|~)$")) {
+                return handleArgs(args[args.length - 1]);
+            }else if (args.length == index+3){
+                return Bukkit.getWorlds().stream().map(World::getName).collect(Collectors.toList());
+            }
+        }
+        return Collections.emptyList();
     }
 
     private List<String> getSuggestionsLocation(String partialInput, CommandSender sender, String[] args) {

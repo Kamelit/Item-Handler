@@ -98,5 +98,4 @@ public class MaterialMetadata {
     public boolean deleteItemOnDeath(){
         return sub_deleteItemOnDeath;
     }
-
 }

@@ -8,8 +8,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.minecrafttest.main.Command.GameCommandExecutor;
 import org.minecrafttest.main.Config.Config;
 import org.minecrafttest.main.Listener.PlayerInteractionListener;
+import org.minecrafttest.main.Parkour.Parkour;
+import org.minecrafttest.main.Parkour.ParkourListener;
 import org.minecrafttest.main.Watches.Chronometer;
-import org.minecrafttest.main.Watches.Clock;
+//import org.minecrafttest.main.Watches.Clock;
 import org.minecrafttest.main.Particles.ParticleAnimation;
 import org.minecrafttest.main.Particles.ParticleListener;
 
@@ -25,7 +27,8 @@ public class ItemHandler extends JavaPlugin {
     private GameCommandExecutor executor;
     private ParticleAnimation particleAnimation;
     private Chronometer chronometer;
-    private Clock clock;
+    //private Clock clock;
+    private Parkour parkour;
 
     @Override
     public void onEnable() {
@@ -35,10 +38,12 @@ public class ItemHandler extends JavaPlugin {
         listener = new PlayerInteractionListener();
         executor = new GameCommandExecutor();
         particleAnimation = new ParticleAnimation();
-        chronometer = new Chronometer(this);
-        clock = new Clock(this);
-        Bukkit.getServer().getPluginManager().registerEvents(new ParticleListener(), this);
-        Bukkit.getServer().getPluginManager().registerEvents(listener, this);
+        chronometer = new Chronometer(instance);
+        //clock = new Clock(instance);
+        parkour = new Parkour();
+        Bukkit.getServer().getPluginManager().registerEvents(new ParkourListener(), instance);
+        Bukkit.getServer().getPluginManager().registerEvents(new ParticleListener(), instance);
+        Bukkit.getServer().getPluginManager().registerEvents(listener, instance);
         List<String> aliases = new ArrayList<>();
         aliases.add("ih");
         PluginCommand command = Objects.requireNonNull(getCommand("ItemHandler"));
@@ -69,7 +74,8 @@ public class ItemHandler extends JavaPlugin {
     public ParticleAnimation getParticleAnimation(){return particleAnimation;}
     public GameCommandExecutor getExecutor(){return executor;}
     public Chronometer getChronometer(){return chronometer;}
-    public Clock getClock(){return clock;}
+    //public Clock getClock(){return clock;}
+    public Parkour getParkour(){return parkour;}
     public static ItemHandler getPlugin() {
         return instance;
     }

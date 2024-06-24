@@ -23,3 +23,6 @@ permissions:
   itemhandler.load.only_me:
     description: Allows the player to load items only for themselves (load only_me)
     default: true
+  itemhandler.reload:
+    description: reload the plugins
+    default: true

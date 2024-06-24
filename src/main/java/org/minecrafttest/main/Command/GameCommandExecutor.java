@@ -63,6 +63,8 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
+            Player player = (Player) sender;
+            if (player.hasPermission("itemhandler.reload")){
             plugin.reloadConfig();
             String file = !Objects.equals(configName, "") ? configName : "subConfig";
             listener.updates("profiles/" + file);
@@ -72,6 +74,12 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                     .build();
             Bukkit.getConsoleSender().sendMessage(enableMessage);
             sender.sendMessage(enableMessage);
+            }else {
+                sender.sendMessage(Component.text()
+                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
+                        .append(Component.text("You do not have permission to use this command.", NamedTextColor.RED))
+                        .build());
+            }
             return true;
         }
 

@@ -14,16 +14,12 @@ public class Checkpoint {
     private final HashMap<String, Set<Player>> players;
 
     public Checkpoint(String map, String id, Location location, int minY) {
-        this.map = map;
-        this.id = id;
-        this.location = location;
-        this.minY = minY;
-        this.players = new HashMap<>();
+        this.map = map;this.id = id;this.location = location;this.minY = minY;this.players = new HashMap<>();
     }
 
-    //public String getMap (){return map;}
+    public String getMap (){ return map; }
 
-    //public String getId (){return id;}
+    public String getId (){ return id; }
 
     public Location getLocation() {
         return location;

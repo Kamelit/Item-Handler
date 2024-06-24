@@ -12,3 +12,14 @@ commands:
     aliases:
       - ih
     permission: itemhandler.view
+
+permissions:
+  itemhandler.view:
+    description: Allows the player to use the /itemhandler command
+    default: true
+  itemhandler.load:
+    description: Allows the player to load items (general load)
+    default: false
+  itemhandler.load.only_me:
+    description: Allows the player to load items only for themselves (load only_me)
+    default: true

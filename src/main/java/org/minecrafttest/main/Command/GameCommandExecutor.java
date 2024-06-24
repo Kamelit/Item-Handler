@@ -113,48 +113,62 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
         }
 
         if (args.length >= 2 && args[0].equalsIgnoreCase("load")) {
-            if (args.length >= 3 && args[1].equalsIgnoreCase("only_me")){
-                Player player = (Player) sender;
-                if (playerItems.contains(args[2].toLowerCase())) {
-                    if (!listener.playerInventory.get(args[2]).contains(player)) {
-                        listener.playerInventory.values().forEach(players -> players.remove(player));
-                        player.getInventory().clear();
-                        listener.setItems(player,args[2].toLowerCase());
-                        listener.playerInventory.get(args[2]).add(player);
-                        listener.runThreads();
+            Player player = (Player) sender;
+            if (args.length >= 3 && args[1].equalsIgnoreCase("only_me")) {
+                if (player.hasPermission("itemhandler.load.only_me")) {
+                    if (playerItems.contains(args[2].toLowerCase())) {
+                        if (!listener.playerInventory.get(args[2]).contains(player)) {
+                            listener.playerInventory.values().forEach(players -> players.remove(player));
+                            player.getInventory().clear();
+                            listener.setItems(player, args[2].toLowerCase());
+                            listener.playerInventory.get(args[2]).add(player);
+                            listener.runThreads();
+                        }
+                    } else {
+                        sender.sendMessage(Component.text()
+                                .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
+                                .append(Component.text("Items of \"" + args[2] + "\" Not Found", NamedTextColor.RED))
+                                .build());
                     }
-                }else {
+                } else {
                     sender.sendMessage(Component.text()
                             .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                            .append(Component.text("Items of \""+ args[2] +"\" Not Found", NamedTextColor.RED))
+                            .append(Component.text("You do not have permission to use this command.", NamedTextColor.RED))
                             .build());
                 }
                 return true;
             }
 
-            StringBuilder configNameBuilder = new StringBuilder();
-            for (int i = 1; i < args.length; i++) {
-                configNameBuilder.append(args[i]);
-                if (i < args.length - 1) {
-                    configNameBuilder.append(" ");
+            if (player.hasPermission("itemhandler.load")) {
+                StringBuilder configNameBuilder = new StringBuilder();
+                for (int i = 1; i < args.length; i++) {
+                    configNameBuilder.append(args[i]);
+                    if (i < args.length - 1) {
+                        configNameBuilder.append(" ");
+                    }
                 }
-            }
-            configName = configNameBuilder.toString();
-            File configFile = new File(plugin.getDataFolder() + File.separator + "profiles", configName + ".yml");
-            if (!configFile.exists()) {
+                configName = configNameBuilder.toString();
+                File configFile = new File(plugin.getDataFolder() + File.separator + "profiles", configName + ".yml");
+                if (!configFile.exists()) {
+                    sender.sendMessage(Component.text()
+                            .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
+                            .append(Component.text("YML not Found ", NamedTextColor.RED))
+                            .append(Component.text(configName + ".yml", NamedTextColor.RED))
+                            .build());
+                    return true;
+                }
+                listener.updates("profiles/" + configName);
+                Component enableMessage = Component.text()
+                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.BLUE))
+                        .append(Component.text("Config loaded: " + configName, NamedTextColor.WHITE))
+                        .build();
+                sender.sendMessage(enableMessage);
+            } else {
                 sender.sendMessage(Component.text()
                         .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                        .append(Component.text("YML not Found ", NamedTextColor.RED))
-                        .append(Component.text(configName + ".yml", NamedTextColor.RED))
+                        .append(Component.text("You do not have permission to use this command.", NamedTextColor.RED))
                         .build());
-                return true;
             }
-            listener.updates("profiles/" + configName);
-            Component enableMessage = Component.text()
-                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.BLUE))
-                    .append(Component.text("Config loaded: " + configName, NamedTextColor.WHITE))
-                    .build();
-            sender.sendMessage(enableMessage);
             return true;
         }
 
@@ -423,9 +437,9 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
 
                 plugin.getParkour().setPlayerParkour(player, args[2]);
                 plugin.getParkour().loadAnimationChecks(player);
-                //sender.sendMessage("Parkour " + parkourName + " iniciado.");
+                //sender.sendMessage("Parkour " + parkourName + " Start.");
             } else {
-                sender.sendMessage(parkourName + " no existe.");
+                sender.sendMessage(parkourName + " no exist.");
             }
             return true;
         }
@@ -439,9 +453,9 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                 plugin.getParkour().getPlayerLastCheckpoint().remove(player);
                 plugin.getParkour().setPlayerParkour(player, args[2]);
                 plugin.getParkour().loadAnimationChecks(player);
-                //sender.sendMessage("Parkour " + parkourName + " Reiniciado.");
+                //sender.sendMessage("Parkour " + parkourName + " Restart.");
             } else {
-                sender.sendMessage(parkourName + " no existe.");
+                sender.sendMessage(parkourName + " no exist.");
             }
             return true;
         }
@@ -456,7 +470,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
 
                 //sender.sendMessage("Parkour " + parkourName + " Fin.");
             } else {
-                sender.sendMessage(parkourName + " no existe.");
+                sender.sendMessage(parkourName + " no exist.");
             }
             return true;
         }

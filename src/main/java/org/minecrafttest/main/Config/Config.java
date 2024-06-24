@@ -7,7 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.logging.Level;
 
-//Configurations_yml's
+//Configurations_yaml's
 public class Config {
     private final ItemHandler plugin = ItemHandler.getPlugin();
 

@@ -127,18 +127,18 @@ public class ParticleAnimation {
 
             for (Checkpoint checkpoint : checkpoints) {
 
-                double radius = 1.5; // Radio de la espiral
-                double height = 3.0; // Altura total de la espiral
-                int turns = 3; // Número de vueltas de la espiral
+                double radius = 1.5;
+                double height = 3.0;
+                int turns = 3;
                 int numParticles = 20; // Particles Number
-                double delta = 2 * Math.PI * turns / numParticles; // Diferencia angular entre partículas
+                double delta = 2 * Math.PI * turns / numParticles; // Difference angular of Particles
                 double rotationSpeed = Math.PI / 4; // Speed Rotations Radians
-                double currentTime = System.currentTimeMillis() / 1000.0; // Tiempo actual en segundos
+                double currentTime = System.currentTimeMillis() / 1000.0; // Time in Seconds
 
-                // Interpolar color
+                // Interpolate color
                 float hue = ((System.currentTimeMillis() ) % 10000) / 10000.0f;
                 java.awt.Color awtColor = java.awt.Color.getHSBColor(hue, 1.0f, 1.0f);
-                int rgb = awtColor.getRGB() & 0xFFFFFF; // Rango
+                int rgb = awtColor.getRGB() & 0xFFFFFF; // Range
                 Color color = Color.fromRGB(rgb);
 
                 Location checkpointLocation = checkpoint.getLocation().clone().add(0.5, 0.5, 0.5); // Center

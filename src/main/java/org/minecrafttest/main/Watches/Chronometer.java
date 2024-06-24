@@ -48,7 +48,7 @@ public class Chronometer implements Runnable {
         UUID playerUUID = player.getUniqueId();
 
         if (playerRunning.getOrDefault(playerUUID, false)) {
-            //player.sendMessage("El cronómetro ya está en marcha.");
+            //player.sendMessage("El chronometer ya está en start.");
             return;
         }
 
@@ -88,7 +88,6 @@ public class Chronometer implements Runnable {
 
         //player.sendMessage("El cronómetro se ha detenido y los datos han sido limpiados.");
 
-        // Verifica si ya no hay cronómetros en ejecución
         if (playerRunning.values().stream().noneMatch(Boolean::booleanValue)) {
             if (task != null) {
                 task.cancel();

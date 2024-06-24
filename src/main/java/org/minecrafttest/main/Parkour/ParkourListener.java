@@ -42,17 +42,17 @@ public class ParkourListener implements Listener {
     public void onPlayerFall(PlayerMoveEvent event) {
         Player player = event.getPlayer();
         Location location = player.getLocation();
-        float yaw = player.getLocation().getYaw();
-        float pitch = player.getLocation().getPitch();
 
         if (plugin.getChronometer().isRunChronometer(player)) {
             if (hasPlayerFallen(location, player)) {
                 Checkpoint lastCheckpoint = playerLastCheckpoint.get(player);
                 if (lastCheckpoint != null) {
                     Location lastLocation = lastCheckpoint.getLocation();
+                    float yaw = player.getLocation().getYaw();
+                    float pitch = player.getLocation().getPitch();
                     lastLocation.setYaw(yaw);
                     lastLocation.setPitch(pitch);
-                    player.teleportAsync(lastCheckpoint.getLocation());
+                    player.teleportAsync(lastLocation);
                 }
             }
         }

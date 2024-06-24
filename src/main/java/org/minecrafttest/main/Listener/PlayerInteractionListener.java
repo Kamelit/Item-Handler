@@ -807,16 +807,6 @@ public class PlayerInteractionListener implements Listener {
             for (List<Object> commandData : worldConfigInMemory.values()) {
                 Block block = (Block) commandData.get(0);
                 if (clickedBlock.equals(block)) {
-                    /*if (commandData.contains("on_block_state_player_change") && clickedBlock.getType().name().contains("PRESSURE_PLATE")) {
-                        Powerable plate = (Powerable) clickedBlock.getBlockData();
-                        if (plate.isPowered()) {
-                            Object obj = commandData.get(1);
-                            List<String> commands = safaCastList(obj, String.class);
-                            for (String command : commands) {
-                                plugin.getServer().dispatchCommand(player, command);
-                            }
-                        }
-                    }*/
                     if ((commandData.contains("on_click") && event.getAction() == Action.LEFT_CLICK_BLOCK) ||
                             (commandData.contains("on_right_click") && event.getAction() == Action.RIGHT_CLICK_BLOCK) ||
                             (commandData.contains("on_left_click") && event.getAction() == Action.LEFT_CLICK_BLOCK)) {

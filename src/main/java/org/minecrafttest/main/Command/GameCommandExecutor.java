@@ -48,6 +48,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        Player player = (Player) sender;
 
         if (args.length == 0 ) {
             Component Message = Component.text()
@@ -63,6 +64,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
+            if (player.hasPermission("itemhandler.reload")){
             plugin.reloadConfig();
             String file = !Objects.equals(configName, "") ? configName : "subConfig";
             listener.updates("profiles/" + file);
@@ -72,17 +74,21 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                     .build();
             Bukkit.getConsoleSender().sendMessage(enableMessage);
             sender.sendMessage(enableMessage);
+            }else {
+                sender.sendMessage(Component.text()
+                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
+                        .append(Component.text("You do not have permission to use this command.", NamedTextColor.RED))
+                        .build());
+            }
             return true;
         }
 
         if (args[0].equalsIgnoreCase("Chronometer") && args[1].equalsIgnoreCase("start")){
-            Player player = (Player) sender;
             plugin.getChronometer().startChronometer(player, 5,0);
             return true;
         }
 
         if (args[0].equalsIgnoreCase("Chronometer") && args[1].equalsIgnoreCase("stop") ){
-            Player player = (Player) sender;
             //plugin.getParkour().RemoveCheckPointPlayer(player);
             plugin.getChronometer().stopChronometer(player);
             return true;
@@ -91,7 +97,6 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
 
 
         if (args[0].equalsIgnoreCase("Chronometer") && args[1].equalsIgnoreCase("restart") ){
-            Player player = (Player) sender;
             if (plugin.getChronometer().isRunChronometer(player)) plugin.getChronometer().stopChronometer(player);
             plugin.getChronometer().startChronometer(player, 5,0);
             //plugin.getParkour().RemoveCheckPointPlayer(player);
@@ -105,15 +110,13 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                 World world = Bukkit.getWorld(Objects.requireNonNull(name));
                 float yaw = player.getLocation().getYaw();
                 float pitch = player.getLocation().getPitch();
-                Location location = new Location(world,x,y,z, yaw, pitch);
-                location.clone().add(0.5, 0.5, 0.5);
+                Location location = new Location(world,x + 0.5 ,y + 0.5, z + 0.5, yaw, pitch);
                 player.teleportAsync(location);
             }
             return true;
         }
 
         if (args.length >= 2 && args[0].equalsIgnoreCase("load")) {
-            Player player = (Player) sender;
             if (args.length >= 3 && args[1].equalsIgnoreCase("only_me")) {
                 if (player.hasPermission("itemhandler.load.only_me")) {
                     if (playerItems.contains(args[2].toLowerCase())) {
@@ -176,9 +179,9 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             try {
                 Player targetPlayer = Bukkit.getPlayer(args[3]);
                 if (targetPlayer != null) {
-                    x = targetPlayer.getLocation().getX();
-                    y = targetPlayer.getLocation().getY();
-                    z = targetPlayer.getLocation().getZ();
+                    x = targetPlayer.getLocation().getBlockX() + 0.5;
+                    y = targetPlayer.getLocation().getBlockY() + 0.5;
+                    z = targetPlayer.getLocation().getBlockZ() + 0.5;
                     if (args.length >= 6){
                         String nameWorld = args[4];
 
@@ -390,6 +393,37 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (args.length > 3 && args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("all_minimums_y")){
+            if (args.length > 4 ){
+                try {
+                    int index = 4   ;
+                    if (args[index].startsWith("~")) {
+                        String offsetString = args[index].substring(1);
+                        if (offsetString.isEmpty()) {
+                            y = ((Player) sender).getLocation().getY();
+                        } else {
+                            double offset = Double.parseDouble(offsetString);
+                            y = ((Player) sender).getLocation().getY() + offset;
+                        }
+                    } else {
+                        y = Double.parseDouble(args[index]);
+                    }
+
+                    if (plugin.getParkour().RegisterParkourMinFallInY(args[3], args[4], (int) y)){
+                        sender.sendMessage("Registered Min!");
+                    }else {
+                        sender.sendMessage("Min_y < Checkpoint");
+                    }
+
+                }catch (NumberFormatException e) {
+                    sender.sendMessage(Component.text()
+                            .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
+                            .append(Component.text("Invalid coordinates provided.", NamedTextColor.RED))
+                            .build());
+                }
+            }
+        }
+
         if (args.length >= 4 && args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("minimums_y")){
             if (args.length > 4 && plugin.getParkour().parkourConfiguration.contains(args[3])){
                 ConfigurationSection parkourSection = plugin.getParkour().parkourConfiguration.getConfigurationSection(args[3]);
@@ -432,10 +466,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
         if (args.length > 2 && args[0].equalsIgnoreCase("parkour") && args[1].equalsIgnoreCase("start")) {
             String parkourName = args[2];
             if (plugin.getParkour().parkourConfiguration.contains(parkourName)) {
-
-                Player player = (Player) sender;
-
-                plugin.getParkour().setPlayerParkour(player, args[2]);
+                plugin.getParkour().setPlayerParkour(player, parkourName);
                 plugin.getParkour().loadAnimationChecks(player);
                 //sender.sendMessage("Parkour " + parkourName + " Start.");
             } else {
@@ -447,12 +478,13 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
         if (args.length > 2 && args[0].equalsIgnoreCase("parkour") && args[1].equalsIgnoreCase("restart")) {
             String parkourName = args[2];
             if (plugin.getParkour().parkourConfiguration.contains(args[2])) {
-                Player player = (Player) sender;
                 plugin.getParkour().RemoveCheckPointPlayer(args[2], player);
                 plugin.getParkour().removePlayerParkour(player, args[2]);
                 plugin.getParkour().getPlayerLastCheckpoint().remove(player);
                 plugin.getParkour().setPlayerParkour(player, args[2]);
                 plugin.getParkour().loadAnimationChecks(player);
+                plugin.getScore().removePlayerScore(player);
+
                 //sender.sendMessage("Parkour " + parkourName + " Restart.");
             } else {
                 sender.sendMessage(parkourName + " no exist.");
@@ -463,10 +495,10 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
         if (args.length > 2 && args[0].equalsIgnoreCase("parkour") && args[1].equalsIgnoreCase("finish")) {
             String parkourName = args[2];
             if (plugin.getParkour().parkourConfiguration.contains(args[2])) {
-
-                Player player = (Player) sender;
+                plugin.getParkour().getPlayerLastCheckpoint().remove(player);
                 plugin.getParkour().RemoveCheckPointPlayer(parkourName, player);
                 plugin.getParkour().removePlayerParkour(player, parkourName);
+                plugin.getScore().removePlayerScore(player);
 
                 //sender.sendMessage("Parkour " + parkourName + " Fin.");
             } else {
@@ -481,13 +513,11 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                 try {
                     Player targetPlayer = Bukkit.getPlayer(args[index]);
                     if (targetPlayer != null) {
-                        x = targetPlayer.getLocation().getX();
-                        y = targetPlayer.getLocation().getY();
-                        z = targetPlayer.getLocation().getZ();
+
                         if (args.length >= index+2){
                             String nameWorld = args[index+1];
 
-                            if (plugin.getParkour().RegisterParkour(args[3],nameWorld, (int) x, (int) y, (int) z )){
+                            if (plugin.getParkour().RegisterParkour(args[3],nameWorld, targetPlayer.getLocation().getBlockX(), targetPlayer.getLocation().getBlockY(), targetPlayer.getLocation().getBlockZ() )){
                                 sender.sendMessage("Registered Parkour Checkpoint");
                             }else {
                                 sender.sendMessage("No Registered");
@@ -538,7 +568,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                             //String typeAction = args[6];
                             String nameWorld = args[index+3];
 
-                            if (plugin.getParkour().RegisterParkour(args[3],nameWorld, (int) x, (int) y, (int) z )){
+                            if (plugin.getParkour().RegisterParkour(args[3],nameWorld, (int) x , (int) y, (int) z)){
                                 sender.sendMessage("Registered Parkour Checkpoint");
                             }else {
                                 sender.sendMessage("No Registered");

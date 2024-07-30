@@ -1,10 +1,10 @@
-load_inventory_only_player: true
-
-items:
+main:
   clock:
     shotBow: false
     wear_armor: false
-    material_change_interval_milliseconds: 2000
+    material: bow
+    delete_item_on_death: true
+    material_change_interval_milliseconds: 1000
     materials:
       material1:
         sub_material: clock
@@ -25,28 +25,113 @@ items:
 
   vanish:
     material: GRAY_DYE
-    materials:
-      material1:
-        sub_material: "%lobbyutils_blinded__GRAY_DYE__LIME_DYE%"
+    delete_item_on_death: true
     quantity: 1
     slot: 7 # Inventory slot (1 for the second slot)
     name: "Jugadores: %lobbyutils_blinded__&cInvisibles__&eVisibles% &7(Click Derecho)" # Display name of the item
     set_drop: false # Whether the item can be dropped
     command_onclick: blind
     change_slot: false # Whether the item can change slot
-    material_change_interval_milliseconds: 1
     #add_item_on_click: true
 
   star:
-    material: NETHER_STAR
+    material: BOOK
+    delete_item_on_death: false
+    material_change_interval_milliseconds: 1000
     materials:
       material1:
-        sub_material: NETHER_STAR
-    quantity: "%envman_LOBBY%"
+        sub_material: BOOK
+      material2:
+        sub_material: GRAY_DYE
+    quantity: "1"
     slot: 8 # Inventory slot (1 for the second slot)
     name: "Selector de Lobbys &7(Click Derecho)" # Display name of the item
     set_drop: false # Whether the item can be dropped
     command_onclick: lobbys
     change_slot: false # Whether the item can change slot
-    material_change_interval_seconds: 1
+    
+    #add_item_on_click: true
+
+parkour:
+
+  restarclock:
+    material: clock
+    delete_item_on_death: false
+    quantity: "1"
+    slot: 0 # Inventory slot (1 for the second slot)
+    name: "Reiniciar" # Display name of the item
+    set_drop: false # Whether the item can be dropped
+    command_onclick: itemhandler Chronometer restart, itemhandler parkour restart Parkour_1
+    change_slot: false # Whether the item can change slot
+    add_item_on_click: false
+
+  stop:
+    material: barrier
+    delete_item_on_death: false
+    quantity: "1"
+    slot: 8 # Inventory slot (1 for the second slot)
+    name: "Detener" # Display name of the item
+    set_drop: false # Whether the item can be dropped
+    command_onclick: itemhandler Chronometer stop, itemhandler load only_me main, itemhandler parkour finish Parkour_1
+    change_slot: false # Whether the item can change slot
+    add_item_on_click: false
+
+  primero:
+    material: nether_star
+    delete_item_on_death: false
+    material_change_interval_milliseconds: 500
+    materials:
+      material1:
+        sub_material: nether_star
+      material2:
+        sub_material: glass_pane
+      material3:
+        sub_material: glass_pane
+    quantity: "1"
+    slot: 3 # Inventory slot (1 for the second slot)
+    name: "3" # Display name of the item
+    set_drop: false # Whether the item can be dropped
+    #command_onclick: lobbys
+    change_slot: false # Whether the item can change slot
+    add_item_on_click: false
+    #add_item_on_click: true
+
+  segundo:
+    material: glass_pane
+    delete_item_on_death: false
+    material_change_interval_milliseconds: 500
+    materials:
+      material1:
+        sub_material: glass_pane
+      material2:
+        sub_material: nether_star
+      material3:
+        sub_material: glass_pane
+    quantity: "1"
+    slot: 4 # Inventory slot (1 for the second slot)
+    name: "4" # Display name of the item
+    set_drop: false # Whether the item can be dropped
+    #command_onclick: lobbys
+    change_slot: false # Whether the item can change slot
+    add_item_on_click: false
+    #add_item_on_click: true
+
+  tercero:
+    material: glass_pane
+    delete_item_on_death: false
+    material_change_interval_milliseconds: 500
+    materials:
+      material1:
+        sub_material: glass_pane
+      material2:
+        sub_material: glass_pane
+      material3:
+        sub_material: nether_star
+    quantity: "1"
+    slot: 5 # Inventory slot (1 for the second slot)
+    name: "5" # Display name of the item
+    set_drop: false # Whether the item can be dropped
+    #command_onclick: lobbys
+    change_slot: false # Whether the item can change slot
+    add_item_on_click: false
     #add_item_on_click: true

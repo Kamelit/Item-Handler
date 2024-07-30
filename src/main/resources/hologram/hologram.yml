@@ -1,0 +1,17 @@
+config:
+
+
+holograms:
+  Scores:
+    world: 'world'
+    x: -298
+    z: 102
+    y: 119
+    title: 'Scores'
+    #field_text:
+    database_scores: false
+    num_dat_a: 0
+    num_dat_b: 10
+    end_text_up: 'Your Scores'
+    __custom__name_score: true
+    end_text_down: '------'

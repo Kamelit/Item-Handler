@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -106,97 +107,104 @@ public class Chronometer implements Runnable {
         int currentTime = (int) System.currentTimeMillis();
 
         for (UUID playerUUID : playerRunning.keySet()) {
-            if (playerRunning.get(playerUUID)) {
-                boolean isCountdown = playerCountdownMode.getOrDefault(playerUUID, false);
-                int startTime = playerStartTime.get(playerUUID);
-                int previousElapsed = playerElapsedTime.get(playerUUID);
-                int elapsed = currentTime - startTime + previousElapsed;
+            if (Objects.requireNonNull(Bukkit.getPlayer(playerUUID)).isConnected()){
+                if (playerRunning.get(playerUUID)) {
+                    boolean isCountdown = playerCountdownMode.getOrDefault(playerUUID, false);
+                    int startTime = playerStartTime.get(playerUUID);
+                    int previousElapsed = playerElapsedTime.get(playerUUID);
+                    int elapsed = currentTime - startTime + previousElapsed;
 
-                int maxTimeMillis = playerMaxTimeMillis.get(playerUUID);
-                int displayElapsed = elapsed;
+                    int maxTimeMillis = playerMaxTimeMillis.get(playerUUID);
+                    int displayElapsed = elapsed;
 
-                if (isCountdown) {
-                    displayElapsed = maxTimeMillis - elapsed;
-                }
+                    if (isCountdown) {
+                        displayElapsed = maxTimeMillis - elapsed;
+                    }
 
-                if (elapsed >= RESET_INTERVAL) {
-                    startTime = currentTime;
-                    elapsed = previousElapsed = 0;
-                    playerStartTime.put(playerUUID, startTime);
-                    playerElapsedTime.put(playerUUID, previousElapsed);
-                }
+                    if (elapsed >= RESET_INTERVAL) {
+                        startTime = currentTime;
+                        elapsed = previousElapsed = 0;
+                        playerStartTime.put(playerUUID, startTime);
+                        playerElapsedTime.put(playerUUID, previousElapsed);
+                    }
 
-                int minutes = (int) TimeUnit.MILLISECONDS.toMinutes(displayElapsed);
-                int seconds = (int) TimeUnit.MILLISECONDS.toSeconds(displayElapsed) % 60;
-                int milliseconds = displayElapsed % 1000;
+                    int minutes = (int) TimeUnit.MILLISECONDS.toMinutes(displayElapsed);
+                    int seconds = (int) TimeUnit.MILLISECONDS.toSeconds(displayElapsed) % 60;
+                    int milliseconds = displayElapsed % 1000;
 
-                if (isCountdown && displayElapsed <= 0) {
-                    playerRunning.put(playerUUID, false);
-                    minutes = 0;
-                    seconds = 0;
-                    milliseconds = 0;
+                    if (isCountdown && displayElapsed <= 0) {
+                        playerRunning.put(playerUUID, false);
+                        minutes = 0;
+                        seconds = 0;
+                        milliseconds = 0;
+                        Player player = Bukkit.getPlayer(playerUUID);
+                        if (player != null) {
+                            player.sendActionBar(Component.text(String.format("%02d:%02d:%03d", minutes, seconds, milliseconds)).color(TextColor.color(255, 0, 0)));
+                            player.sendMessage("El cronómetro se ha detenido automáticamente.");
+                        }
+
+                        playerRunning.remove(playerUUID);
+                        playerStartTime.remove(playerUUID);
+                        playerElapsedTime.remove(playerUUID);
+                        playerCountdownMode.remove(playerUUID);
+                        playerMaxTimeMillis.remove(playerUUID);
+                        playersInChronometer.remove(player);
+
+                        continue;
+                    } else if (!isCountdown && elapsed >= maxTimeMillis) {
+                        playerRunning.put(playerUUID, false);
+                        minutes = maxTimeMillis / 60000;
+                        seconds = (maxTimeMillis / 1000) % 60;
+                        milliseconds = 0;
+                        Player player = Bukkit.getPlayer(playerUUID);
+                        if (player != null) {
+                            player.sendActionBar(Component.text(String.format("%02d:%02d:%03d", minutes, seconds, milliseconds)).color(TextColor.color(255, 0, 0)));
+                            player.sendMessage("El cronómetro se ha detenido automáticamente.");
+                        }
+
+                        playerRunning.remove(playerUUID);
+                        playerStartTime.remove(playerUUID);
+                        playerElapsedTime.remove(playerUUID);
+                        playerCountdownMode.remove(playerUUID);
+                        playerMaxTimeMillis.remove(playerUUID);
+                        playersInChronometer.remove(player);
+                        continue;
+                    }
+
+                    TextColor color = interpolateColor(isCountdown ? maxTimeMillis - displayElapsed : displayElapsed, maxTimeMillis);
+
                     Player player = Bukkit.getPlayer(playerUUID);
                     if (player != null) {
-                        player.sendActionBar(Component.text(String.format("%02d:%02d:%03d", minutes, seconds, milliseconds)).color(TextColor.color(255, 0, 0)));
-                        player.sendMessage("El cronómetro se ha detenido automáticamente.");
-                    }
-
-                    // Limpieza de datos del jugador
-                    playerRunning.remove(playerUUID);
-                    playerStartTime.remove(playerUUID);
-                    playerElapsedTime.remove(playerUUID);
-                    playerCountdownMode.remove(playerUUID);
-                    playerMaxTimeMillis.remove(playerUUID);
-                    playersInChronometer.remove(player);
-
-                    continue;
-                } else if (!isCountdown && elapsed >= maxTimeMillis) {
-                    playerRunning.put(playerUUID, false);
-                    minutes = maxTimeMillis / 60000;
-                    seconds = (maxTimeMillis / 1000) % 60;
-                    milliseconds = 0;
-                    Player player = Bukkit.getPlayer(playerUUID);
-                    if (player != null) {
-                        player.sendActionBar(Component.text(String.format("%02d:%02d:%03d", minutes, seconds, milliseconds)).color(TextColor.color(255, 0, 0)));
-                        player.sendMessage("El cronómetro se ha detenido automáticamente.");
-                    }
-
-                    // Limpieza de datos del jugador
-                    playerRunning.remove(playerUUID);
-                    playerStartTime.remove(playerUUID);
-                    playerElapsedTime.remove(playerUUID);
-                    playerCountdownMode.remove(playerUUID);
-                    playerMaxTimeMillis.remove(playerUUID);
-                    playersInChronometer.remove(player);
-                    continue;
-                }
-
-                TextColor color = interpolateColor(isCountdown ? maxTimeMillis - displayElapsed : displayElapsed, maxTimeMillis);
-
-                Player player = Bukkit.getPlayer(playerUUID);
-                if (player != null) {
-                    if ((isCountdown && displayElapsed <= BLINK_THRESHOLD) || (!isCountdown && displayElapsed >= maxTimeMillis - BLINK_THRESHOLD)) {
-                        double opacityFactor = 0.5 + 0.5 * Math.sin(Math.PI * blinkTick / 2); // Limit Time blink
-                        blinkTick++;
-                        int red = (int) (color.red() * opacityFactor);
-                        int green = (int) (color.green() * opacityFactor);
-                        int blue = (int) (color.blue() * opacityFactor);
-                        TextColor blinkColor = TextColor.color(red, green, blue);
-                        player.sendActionBar(Component.text(String.format("%02d:%02d:%03d", minutes, seconds, milliseconds))
-                                .color(blinkColor));
-                    } else {
-                        player.sendActionBar(Component.text(String.format("%02d:%02d:%03d", minutes, seconds, milliseconds)).color(color));
+                        if ((isCountdown && displayElapsed <= BLINK_THRESHOLD) || (!isCountdown && displayElapsed >= maxTimeMillis - BLINK_THRESHOLD)) {
+                            double opacityFactor = 0.5 + 0.5 * Math.sin(Math.PI * blinkTick / 2); // Limit Time blink
+                            blinkTick++;
+                            int red = (int) (color.red() * opacityFactor);
+                            int green = (int) (color.green() * opacityFactor);
+                            int blue = (int) (color.blue() * opacityFactor);
+                            TextColor blinkColor = TextColor.color(red, green, blue);
+                            player.sendActionBar(Component.text(String.format("%02d:%02d:%03d", minutes, seconds, milliseconds))
+                                    .color(blinkColor));
+                        } else {
+                            player.sendActionBar(Component.text(String.format("%02d:%02d:%03d", minutes, seconds, milliseconds)).color(color));
+                        }
                     }
                 }
+            }else {
+                playerRunning.remove(playerUUID);
+                playerStartTime.remove(playerUUID);
+                playerElapsedTime.remove(playerUUID);
+                playerCountdownMode.remove(playerUUID);
+                playerMaxTimeMillis.remove(playerUUID);
+                playersInChronometer.remove(Bukkit.getPlayer(playerUUID));
             }
         }
-
         if (playerRunning.values().stream().noneMatch(Boolean::booleanValue)) {
             if (task != null) {
                 task.cancel();
                 task = null;
             }
         }
+
     }
 
     private TextColor interpolateColor(int elapsed, int maxTime) {
@@ -216,5 +224,26 @@ public class Chronometer implements Runnable {
 
     public Set<Player> getPlayersInChronometer(){
         return playersInChronometer;
+    }
+
+    public int getTimeByPlayer(Player player) {
+        UUID playerUUID = player.getUniqueId();
+        if (!playerRunning.containsKey(playerUUID)) {
+            return 0;
+        }
+
+        int currentTime = (int) System.currentTimeMillis();
+        boolean isCountdown = playerCountdownMode.getOrDefault(playerUUID, false);
+        int startTime = playerStartTime.get(playerUUID);
+        int previousElapsed = playerElapsedTime.get(playerUUID);
+        int elapsed = currentTime - startTime + previousElapsed;
+
+        int displayElapsed = elapsed;
+        if (isCountdown) {
+            int maxTimeMillis = playerMaxTimeMillis.get(playerUUID);
+            displayElapsed = maxTimeMillis - elapsed;
+        }
+
+        return displayElapsed;
     }
 }

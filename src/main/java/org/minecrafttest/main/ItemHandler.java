@@ -1,17 +1,23 @@
 package org.minecrafttest.main;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
+
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.minecrafttest.main.Command.GameCommandExecutor;
+import org.minecrafttest.main.Command.HologramCommand;
 import org.minecrafttest.main.Config.Config;
+import org.minecrafttest.main.Database.Database;
+import org.minecrafttest.main.Hologram.HoloListener;
+import org.minecrafttest.main.Hologram.Hologram;
 import org.minecrafttest.main.Listener.PlayerInteractionListener;
 import org.minecrafttest.main.Parkour.Parkour;
 import org.minecrafttest.main.Parkour.ParkourListener;
+import org.minecrafttest.main.Parkour.Scores.Score;
+import org.minecrafttest.main.Parkour.Scores.ScoreListener;
+import org.minecrafttest.main.Version.Component.ColorText;
+import org.minecrafttest.main.Version.MessageBuilder;
 import org.minecrafttest.main.Watches.Chronometer;
-//import org.minecrafttest.main.Watches.Clock;
 import org.minecrafttest.main.Particles.ParticleAnimation;
 import org.minecrafttest.main.Particles.ParticleListener;
 
@@ -27,8 +33,11 @@ public class ItemHandler extends JavaPlugin {
     private GameCommandExecutor executor;
     private ParticleAnimation particleAnimation;
     private Chronometer chronometer;
-    //private Clock clock;
     private Parkour parkour;
+    private Score score;
+    private ScoreListener scoreListener;
+    private Database database;
+    private Hologram hologram;
 
     @Override
     public void onEnable() {
@@ -39,33 +48,50 @@ public class ItemHandler extends JavaPlugin {
         executor = new GameCommandExecutor();
         particleAnimation = new ParticleAnimation();
         chronometer = new Chronometer(instance);
-        //clock = new Clock(instance);
         parkour = new Parkour();
+        score = new Score();
+        scoreListener = new ScoreListener();
+        database = new Database();
+        hologram = new Hologram();
+
+        hologram.init();
+
+        Bukkit.getServer().getPluginManager().registerEvents(scoreListener, instance);
         Bukkit.getServer().getPluginManager().registerEvents(new ParkourListener(), instance);
         Bukkit.getServer().getPluginManager().registerEvents(new ParticleListener(), instance);
+        Bukkit.getServer().getPluginManager().registerEvents(new ScoreListener(), instance);
+        Bukkit.getServer().getPluginManager().registerEvents(new HoloListener(), instance);
         Bukkit.getServer().getPluginManager().registerEvents(listener, instance);
+
+        Objects.requireNonNull(getCommand("hologram")).setExecutor(new HologramCommand());
+
         List<String> aliases = new ArrayList<>();
         aliases.add("ih");
-        PluginCommand command = Objects.requireNonNull(getCommand("ItemHandler"));
-        command.setAliases(aliases);
+        PluginCommand command = getCommand("itemHandler");
+        Objects.requireNonNull(command).setAliases(aliases);
         command.setExecutor(executor);
+
         listener.loadAllResources();
         listener.runThreads();
-        Component enableMessage = Component.text()
-                .append(Component.text("[" + this.getName() + "] ", NamedTextColor.GREEN))
-                .append(Component.text("Load: " , NamedTextColor.WHITE))
-                .append(Component.text("Ok " , NamedTextColor.GREEN))
-                .build();
-        Bukkit.getConsoleSender().sendMessage(enableMessage);
+
+        MessageBuilder messageBuilder = MessageBuilder.createMessageBuilder();
+        messageBuilder.append("[" + this.getName() + "] ", ColorText.GREEN)
+                .append("Load: ")
+                .append("Ok", ColorText.GREEN).build();
+
+        messageBuilder.BukkitSender();
+
     }
+
     @Override
     public void onDisable() {
         listener.cancelAllMaterialChangeTasks();
-        Component enableMessage = Component.text()
-                .append(Component.text("[" + this.getName() + "] ", NamedTextColor.BLUE))
-                .append(Component.text("Close " + this.getName() , NamedTextColor.BLUE))
-                .build();
-        Bukkit.getConsoleSender().sendMessage(enableMessage);
+
+        MessageBuilder messageBuilder = MessageBuilder.createMessageBuilder();
+        messageBuilder.append("[" + this.getName() + "] ", ColorText.BLUE)
+                .append("Close " + this.getName() , ColorText.RED).build();
+        messageBuilder.BukkitSender();
+
     }
     public Config getCustomConfig(){
         return pluginConfig;
@@ -74,8 +100,11 @@ public class ItemHandler extends JavaPlugin {
     public ParticleAnimation getParticleAnimation(){return particleAnimation;}
     public GameCommandExecutor getExecutor(){return executor;}
     public Chronometer getChronometer(){return chronometer;}
-    //public Clock getClock(){return clock;}
     public Parkour getParkour(){return parkour;}
+    public Score getScore(){return score;}
+    public ScoreListener getScoreListener(){return scoreListener;}
+    public Database getDatabase(){return database;}
+    public Hologram getHologram(){return hologram;}
     public static ItemHandler getPlugin() {
         return instance;
     }

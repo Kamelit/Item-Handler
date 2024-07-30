@@ -51,7 +51,7 @@ public class Parkour {
         String parkourName = plugin.getParkour().getPlayerParkour(player);
 
         if (parkourName != null && plugin.getChronometer().isRunChronometer(player)) {
-            List<Checkpoint> checkpoints = plugin.getParkour().getCheckpointsMap().get(parkourName);
+            List<Checkpoint> checkpoints = getCheckpointsMap().get(parkourName);
             plugin.getParticleAnimation().playAnimation(parkourName, checkpoints,TypesAnimation.BEAUTIFUL_CHECKPOINT);
         }
     }
@@ -113,6 +113,7 @@ public class Parkour {
         }
         return false;
     }
+
 
     public boolean RegisterParkourMinFallInY(String PrincipalPath, String Checkpoint , int Y_min){
         String path = PrincipalPath+"."+Checkpoint;

@@ -203,7 +203,7 @@ public class ParticleAnimation {
     private void sendCustomParticles(List<Player> players, Location location, Color color) {
         WrappedParticle<Particle.DustOptions> particle = WrappedParticle.create(Particle.REDSTONE, new Particle.DustOptions(color, (float) 1.0));
 
-        PacketContainer particlePacket = protocolManager.createPacket(PacketType.Play.Server.WORLD_PARTICLES);
+        PacketContainer particlePacket = new PacketContainer(PacketType.Play.Server.WORLD_PARTICLES);
         particlePacket.getNewParticles().write(0, particle);
         particlePacket.getBooleans().write(0, false); // Long distance
         particlePacket.getDoubles().write(0, location.getX()); // X coordinate

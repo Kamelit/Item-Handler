@@ -55,6 +55,11 @@ public class Config {
             plugin.saveResource("parkour/parkour.yml", false);
         }
 
+        File hologram = new File(new File(plugin.getDataFolder(), "hologram"), "hologram.yml");
+        if (!hologram.exists()) {
+            plugin.saveResource("hologram/hologram.yml", false);
+        }
+
         plugin.reloadConfig();
     }
 

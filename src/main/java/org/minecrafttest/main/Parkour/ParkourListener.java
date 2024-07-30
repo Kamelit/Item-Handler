@@ -36,6 +36,7 @@ public class ParkourListener implements Listener {
                 }
             }
         }
+
     }
 
     @EventHandler
@@ -48,6 +49,9 @@ public class ParkourListener implements Listener {
                 Checkpoint lastCheckpoint = playerLastCheckpoint.get(player);
                 if (lastCheckpoint != null) {
                     Location lastLocation = lastCheckpoint.getLocation();
+                    lastLocation.setX(lastLocation.getBlockX() + 0.5);
+                    lastLocation.setY(lastLocation.getBlockY() + 0.5);
+                    lastLocation.setZ(lastLocation.getBlockZ() + 0.5);
                     float yaw = player.getLocation().getYaw();
                     float pitch = player.getLocation().getPitch();
                     lastLocation.setYaw(yaw);

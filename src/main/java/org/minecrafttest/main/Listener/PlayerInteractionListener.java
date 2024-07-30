@@ -8,7 +8,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.block.data.Powerable;
+import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
@@ -55,6 +55,7 @@ public class PlayerInteractionListener implements Listener {
     private final Map<String,List<MaterialMetadata>> materialInfoList = new HashMap<>();
 
     private final Map<String, Map<Runnable, Long>> MapTask = new HashMap<>();
+
 
     private YamlConfiguration yamlConfig;
     private String quantity, material, name, commandOnClick, commandRight, commandLeft;
@@ -752,7 +753,7 @@ public class PlayerInteractionListener implements Listener {
             if (block.equals(storedBlock) && commandData.contains(text)) {
                 if (player != null && player.isOnline() && player.getWorld().equals(block.getWorld())) {
                     Object obj = commandData.get(1);
-                    List<String> commands = safaCastList(obj, String.class);
+                    List<String> commands = safeCastList(obj, String.class);
                     for (String command : commands){
                         plugin.getServer().dispatchCommand(player, command);
                     }
@@ -767,7 +768,7 @@ public class PlayerInteractionListener implements Listener {
             if (block.equals(storedBlock) && commandData.contains(text)) {
                 Object obj = commandData.get(1);
                 Class<String> type = String.class;
-                List<String> commands = safaCastList(obj, type);
+                List<String> commands = safeCastList(obj, type);
                 for (String command : commands){
                     plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), command);
                 }
@@ -776,7 +777,7 @@ public class PlayerInteractionListener implements Listener {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> List<T> safaCastList(Object obj, Class<T> tClass){
+    private <T> List<T> safeCastList(Object obj, Class<T> tClass){
         if (obj instanceof List<?>){
             List<?> list = (List<?>) obj;
             for (Object element : list){
@@ -811,7 +812,7 @@ public class PlayerInteractionListener implements Listener {
                             (commandData.contains("on_right_click") && event.getAction() == Action.RIGHT_CLICK_BLOCK) ||
                             (commandData.contains("on_left_click") && event.getAction() == Action.LEFT_CLICK_BLOCK)) {
                         Object obj = commandData.get(1);
-                        List<String> commands = safaCastList(obj, String.class);
+                        List<String> commands = safeCastList(obj, String.class);
                         for (String command : commands){
                             plugin.getServer().dispatchCommand(player, command);
                         }
@@ -819,7 +820,7 @@ public class PlayerInteractionListener implements Listener {
                     } else if ((commandData.contains("on_right_click") && event.getAction() == Action.RIGHT_CLICK_AIR) ||
                             (commandData.contains("on_left_click") && event.getAction() == Action.LEFT_CLICK_AIR)) {
                         Object obj = commandData.get(1);
-                        List<String> commands = safaCastList(obj, String.class);
+                        List<String> commands = safeCastList(obj, String.class);
                         for (String command : commands){
                             plugin.getServer().dispatchCommand(player, command);
                         }
@@ -901,17 +902,17 @@ public class PlayerInteractionListener implements Listener {
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
-        Block blockUnderPlayer = player.getLocation().getBlock();
+        Block getBlock = player.getLocation().getBlock();
 
-        if (blockUnderPlayer.getType().name().contains("PRESSURE_PLATE")) {
+        if (getBlock.getType().name().contains("PRESSURE_PLATE")) {
+            System.out.println(getBlock);
             for (List<Object> commandData : worldConfigInMemory.values()) {
                 Block block = (Block) commandData.get(0);
-                if (blockUnderPlayer.equals(block)) {
+                if (getBlock.equals(block)) {
                     if (commandData.contains("on_block_state_player_change")) {
-                        Powerable plate = (Powerable) blockUnderPlayer.getBlockData();
-                        if (plate.isPowered()) {
+                        if (getBlock.getBlockPower(BlockFace.DOWN) > 0) {
                             Object obj = commandData.get(1);
-                            List<String> commands = safaCastList(obj, String.class);
+                            List<String> commands = safeCastList(obj, String.class);
                             for (String command : commands) {
                                 plugin.getServer().dispatchCommand(player, command);
                             }
@@ -921,6 +922,7 @@ public class PlayerInteractionListener implements Listener {
             }
         }
     }
+
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {

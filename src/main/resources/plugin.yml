@@ -6,14 +6,28 @@ folia-supported: true
 softdepend: [PlaceholderAPI, ProtocolLib]
 
 commands:
-  ItemHandler:
+  itemHandler:
     description: Items from config File!
     usage: /itemhandler
-    aliases:
-      - ih
+    aliases: [ih]
     permission: itemhandler.view
 
+  hologram:
+    description: Spawn Hologram
+    usage: /hologram <line1|line2|...>
+    aliases: [holo]
+    permission: hologram.spawn
+
 permissions:
+
+  hologram.spawn:
+    description: Spawn Hologram
+    default: true
+
+  itemhandler.command.view:
+    description: Allows the player to use the /hologram command
+    default: true
+
   itemhandler.view:
     description: Allows the player to use the /itemhandler command
     default: true

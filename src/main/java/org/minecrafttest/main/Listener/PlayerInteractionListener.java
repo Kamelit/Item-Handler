@@ -1,11 +1,7 @@
 package org.minecrafttest.main.Listener;
 
-import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import me.clip.placeholderapi.PlaceholderAPI;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -26,10 +22,12 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
-import org.jetbrains.annotations.Nullable;
 import org.minecrafttest.main.ItemHandler;
 import org.minecrafttest.main.Particles.TypesAnimation;
+import org.minecrafttest.main.Version.SchedulerAdapter;
+import org.minecrafttest.main.Version.Component.ColorText;
+import org.minecrafttest.main.Version.MessageBuilder;
+import org.minecrafttest.main.Version.MetadataBuilder;
 
 import java.io.File;
 import java.util.*;
@@ -42,8 +40,22 @@ import java.util.stream.Collectors;
 //Listener
 public class PlayerInteractionListener implements Listener {
     //Only Class
+
+
     private final ItemHandler plugin = ItemHandler.getPlugin();
-    private final NamespacedKey key1 = new NamespacedKey(plugin, "set_drop");
+    private final static String key1 = "set_drop";
+    private final static String key2_all = "command_onclick";
+    private final static String key2_Left = "command_left";
+    private final static String key2_Right = "command_right";
+    private final static String key3 = "change_slot";
+    private final static String key4 = "add_item_on_click";
+    private final static String key5 = "shotBow";
+    private final static String key6 = "wear_armor";
+    private final static String key7 = "delete_item_on_death";
+
+    private final MetadataBuilder metadataBuilder = MetadataBuilder.createMetaBuilder().getPlugin(plugin);
+
+    /*private final NamespacedKey key1 = new NamespacedKey(plugin, "set_drop");
     private final NamespacedKey key2_all = new NamespacedKey(plugin, "command_onclick");
     private final NamespacedKey key2_Left = new NamespacedKey(plugin, "command_left");
     private final NamespacedKey key2_Right = new NamespacedKey(plugin, "command_right");
@@ -51,7 +63,9 @@ public class PlayerInteractionListener implements Listener {
     private final NamespacedKey key4 = new NamespacedKey(plugin, "add_item_on_click");
     private final NamespacedKey key5 = new NamespacedKey(plugin, "shotBow");
     private final NamespacedKey key6 = new NamespacedKey(plugin, "wear_armor");
-    private final NamespacedKey key7 = new NamespacedKey(plugin,"delete_item_on_death");
+    private final NamespacedKey key7 = new NamespacedKey(plugin,"delete_item_on_death");*/
+
+
     private final Map<String,List<MaterialMetadata>> materialInfoList = new HashMap<>();
 
     private final Map<String, Map<Runnable, Long>> MapTask = new HashMap<>();
@@ -65,7 +79,7 @@ public class PlayerInteractionListener implements Listener {
     public final String[] groupKeysMenusType = {"main", "parkour"};
 
     //All Class
-    public final Map<String, List<ScheduledTask>> taskMap = new HashMap<>();
+    public final Map<String, List<SchedulerAdapter>> taskMap = new HashMap<>();
     public final Map<String, List<Object>> worldConfigInMemory = new HashMap<>();
     public final Map<String, List<Player>> playerInventory = new HashMap<>();
     public YamlConfiguration worldConfig;
@@ -76,6 +90,7 @@ public class PlayerInteractionListener implements Listener {
             taskMap.putIfAbsent(key, new ArrayList<>());
         }
         plugin.getParkour().loadCheckpoints();
+
         worldConfig = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "blocks_events/world.yml"));
         plugin.getParkour().parkourConfiguration = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(),"parkour/parkour.yml"));
         if (getConfigurationName()) return;
@@ -200,8 +215,6 @@ public class PlayerInteractionListener implements Listener {
         return yamlConfig.getKeys(false).isEmpty();
     }
 
-
-
     public void runThreads() {
         cancelThreadsInNotUse();
 
@@ -212,7 +225,9 @@ public class PlayerInteractionListener implements Listener {
                     Runnable task = entry.getKey();
                     long delay = entry.getValue();
                     if (playerInventory.containsKey(key) && !playerInventory.get(key).isEmpty()) {
-                        taskMap.get(key).add(Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> task.run(), 0, delay, TimeUnit.MILLISECONDS));
+                        SchedulerAdapter schedulerAdapter = SchedulerAdapter.createSchedulerApi();
+                        schedulerAdapter.AsynchronousRunAtFixedRate(plugin, task, 0, delay, TimeUnit.MILLISECONDS);
+                        taskMap.get(key).add(schedulerAdapter);
                     }
                 }
             }
@@ -223,9 +238,9 @@ public class PlayerInteractionListener implements Listener {
         for (String key : new ArrayList<>(playerInventory.keySet())) {
             List<Player> players = playerInventory.get(key);
             if (players.isEmpty()) {
-                List<ScheduledTask> tasks = taskMap.get(key);
+                List<SchedulerAdapter> tasks = taskMap.get(key);
                 if (tasks != null) {
-                    for (ScheduledTask task : tasks) {
+                    for (SchedulerAdapter task : tasks) {
                         task.cancel();
                     }
                     tasks.clear();
@@ -235,8 +250,8 @@ public class PlayerInteractionListener implements Listener {
     }
 
     public void cancelAllMaterialChangeTasks(){
-        for (List<ScheduledTask> tasks : taskMap.values()) {
-            for (ScheduledTask task : tasks) {
+        for (List<SchedulerAdapter> tasks : taskMap.values()) {
+            for (SchedulerAdapter task : tasks) {
                 task.cancel();
             }
             tasks.clear();
@@ -248,6 +263,7 @@ public class PlayerInteractionListener implements Listener {
         Player player = event.getPlayer();
         playerInventory.get(groupKeysMenusType[0]).add(player);
         System.out.println(playerInventory);
+        System.out.println(player.getLocation());
         setItems(player, groupKeysMenusType[0]);
         runThreads();
     }
@@ -266,8 +282,10 @@ public class PlayerInteractionListener implements Listener {
         if (getConfigurationName()) return;
         if (yamlConfig.contains(path)) {
             ConfigurationSection itemsConfig = yamlConfig.getConfigurationSection(path);
+
             assert itemsConfig != null;
             for (String itemName : itemsConfig.getKeys(false)) {
+
                 ConfigurationSection itemConfig = itemsConfig.getConfigurationSection(itemName);
                 assert itemConfig != null;
                 int slot = checksSlotException(itemConfig.getInt("slot"));
@@ -281,9 +299,20 @@ public class PlayerInteractionListener implements Listener {
     }
 
     private boolean isItemFromPlugin(ItemStack itemStack) {
-        ItemMeta meta = itemStack.getItemMeta();
-        if (meta == null) return true;
 
+        return !metadataBuilder.hasCustomData(itemStack, key1 , Byte.class)
+                || !metadataBuilder.hasCustomData(itemStack, key2_all, String.class)
+                || !metadataBuilder.hasCustomData(itemStack, key2_Left, String.class)
+                || !metadataBuilder.hasCustomData(itemStack, key2_Right, String.class)
+                || !metadataBuilder.hasCustomData(itemStack, key3, Byte.class)
+                || !metadataBuilder.hasCustomData(itemStack, key4, Byte.class)
+                || !metadataBuilder.hasCustomData(itemStack, key5, Byte.class)
+                || !metadataBuilder.hasCustomData(itemStack, key6, Byte.class)
+                || !metadataBuilder.hasCustomData(itemStack, key7, Byte.class);
+
+        /*ItemMeta meta = itemStack.getItemMeta();
+        //
+        if (meta == null) return true;
         return !meta.getPersistentDataContainer().has(key1, PersistentDataType.BYTE)
                 || !meta.getPersistentDataContainer().has(key2_all, PersistentDataType.STRING)
                 || !meta.getPersistentDataContainer().has(key2_Left, PersistentDataType.STRING)
@@ -292,7 +321,9 @@ public class PlayerInteractionListener implements Listener {
                 || !meta.getPersistentDataContainer().has(key4, PersistentDataType.BYTE)
                 || !meta.getPersistentDataContainer().has(key5, PersistentDataType.BYTE)
                 || !meta.getPersistentDataContainer().has(key6, PersistentDataType.BYTE)
-                || !meta.getPersistentDataContainer().has(key7, PersistentDataType.BYTE);
+                || !meta.getPersistentDataContainer().has(key7, PersistentDataType.BYTE);*/
+
+
     }
     @SuppressWarnings("deprecation")
     private boolean allowItemPlacement(Material material) {
@@ -305,11 +336,22 @@ public class PlayerInteractionListener implements Listener {
         return CheckUse(itemStack, key5);
     }
 
-    private boolean CheckUse(ItemStack itemStack, NamespacedKey key5) {
+    /*private boolean CheckUse(ItemStack itemStack, NamespacedKey key5) {
         if (itemStack != null && itemStack.hasItemMeta()) {
             ItemMeta itemMeta = itemStack.getItemMeta();
             if (itemMeta != null && itemMeta.getPersistentDataContainer().has(key5, PersistentDataType.BYTE)) {
                 Byte setDropValue = itemMeta.getPersistentDataContainer().get(key5, PersistentDataType.BYTE);
+                return setDropValue != null && setDropValue != 1;
+            }
+        }
+        return true;
+    }*/
+
+    private boolean CheckUse(ItemStack itemStack, String key) {
+        if (itemStack != null && itemStack.hasItemMeta()) {
+            ItemMeta itemMeta = itemStack.getItemMeta();
+            if (itemMeta != null && metadataBuilder.hasCustomData(itemStack, key, Byte.class)) {
+                Byte setDropValue = metadataBuilder.getCustomData(itemStack, key, Byte.class);
                 return setDropValue != null && setDropValue != 1;
             }
         }
@@ -320,7 +362,7 @@ public class PlayerInteractionListener implements Listener {
         return CheckUse(itemStack, key6);
     }
 
-    @EventHandler
+    /*@EventHandler
     public void onDeath(PlayerDeathEvent event) {
         Player eventPlayer = event.getPlayer();
         Bukkit.getAsyncScheduler().runDelayed(plugin, scheduledTask -> setItems(eventPlayer, groupKeysMenusType[0]), 250, TimeUnit.MILLISECONDS);
@@ -336,8 +378,27 @@ public class PlayerInteractionListener implements Listener {
                 }
             }
         }
+    }*/
+
+    @EventHandler
+    public void onDeath(PlayerDeathEvent event) {
+        Player eventPlayer = event.getPlayer();
+        SchedulerAdapter schedulerAdapter = SchedulerAdapter.createSchedulerApi();
+        schedulerAdapter.AsynchronousRunDelayed(plugin, ()-> setItems(eventPlayer, groupKeysMenusType[0]), 250, TimeUnit.MILLISECONDS);
+        for (ItemStack drop : event.getDrops()) {
+            if (drop != null && drop.hasItemMeta()) {
+                ItemMeta meta = drop.getItemMeta();
+                if (meta != null && metadataBuilder.hasCustomData(drop, key7, Byte.class) ) {
+                    Byte deleteItemOnDeath = metadataBuilder.getCustomData(drop, key7, Byte.class);
+                    if (deleteItemOnDeath != null && deleteItemOnDeath == 1) {
+                        drop.setAmount(0);
+                    }
+                }
+            }
+        }
     }
-    private boolean addItemOnClick(ItemStack itemStack) {
+
+    /*private boolean addItemOnClick(ItemStack itemStack) {
         if (itemStack != null && itemStack.hasItemMeta()) {
             ItemMeta itemMeta = itemStack.getItemMeta();
             if (itemMeta != null && itemMeta.getPersistentDataContainer().has(key4, PersistentDataType.BYTE)) {
@@ -346,11 +407,31 @@ public class PlayerInteractionListener implements Listener {
             }
         }
         return true;
+    }*/
+
+    private boolean addItemOnClick(ItemStack itemStack) {
+        if (itemStack != null && itemStack.hasItemMeta()) {
+            ItemMeta itemMeta = itemStack.getItemMeta();
+            if (itemMeta != null && metadataBuilder.hasCustomData(itemStack , key4, Byte.class)) {
+                    Byte addItemOnClickValue = metadataBuilder.getCustomData(itemStack, key4, Byte.class);
+                return (addItemOnClickValue != null && addItemOnClickValue == 1);
+            }
+        }
+        return true;
     }
-    @EventHandler
+
+    /*@EventHandler
     public void onPlayerDropItem(PlayerDropItemEvent event) {
         ItemStack droppedItem = event.getItemDrop().getItemStack();
         if (canDropItem(droppedItem)&& droppedItem.getItemMeta().getPersistentDataContainer().has(key1)) {
+            event.setCancelled(true);
+        }
+    }*/
+
+    @EventHandler
+    public void onPlayerDropItem(PlayerDropItemEvent event) {
+        ItemStack droppedItem = event.getItemDrop().getItemStack();
+        if (canDropItem(droppedItem) && metadataBuilder.hasCustomData(droppedItem, key1, Byte.class)) {
             event.setCancelled(true);
         }
     }
@@ -371,10 +452,15 @@ public class PlayerInteractionListener implements Listener {
         InventoryAction action = event.getAction();
         if (action == InventoryAction.SWAP_WITH_CURSOR) {
             assert clickedItem != null;
-            ItemMeta itemMeta1 = clickedItem.getItemMeta();
+            /*ItemMeta itemMeta1 = clickedItem.getItemMeta();
             ItemMeta itemMeta2 = cursorItem.getItemMeta();
+
             Byte Change1 = itemMeta1.getPersistentDataContainer().get(key3, PersistentDataType.BYTE);
-            Byte Change2 = itemMeta2.getPersistentDataContainer().get(key3, PersistentDataType.BYTE);
+            Byte Change2 = itemMeta2.getPersistentDataContainer().get(key3, PersistentDataType.BYTE);*/
+
+            Byte Change1 = metadataBuilder.getCustomData(clickedItem, key3, Byte.class);
+            Byte Change2 = metadataBuilder.getCustomData(cursorItem, key3, Byte.class);
+
             if (!Objects.equals(Change1, Change2)){
                 event.setCancelled(true);
                 player.updateInventory();
@@ -398,7 +484,7 @@ public class PlayerInteractionListener implements Listener {
         return false;
     }
 
-    @Nullable
+    /*@Nullable
     private Boolean getaBooleanMeta(ItemStack item) {
         if (item != null && item.hasItemMeta()) {
             ItemMeta itemMeta = item.getItemMeta();
@@ -408,13 +494,35 @@ public class PlayerInteractionListener implements Listener {
             }
         }
         return null;
+    }*/
+
+    private Boolean getaBooleanMeta(ItemStack item) {
+        if (item != null && item.hasItemMeta()) {
+            ItemMeta itemMeta = item.getItemMeta();
+            if (itemMeta != null && metadataBuilder.hasCustomData(item, key3, Byte.class) ) {
+                Byte changeSlotValue = metadataBuilder.getCustomData(item, key3, Byte.class);
+                return (changeSlotValue != null && changeSlotValue == 0);
+            }
+        }
+        return null;
     }
 
-    private boolean canDropItem(ItemStack itemStack) {
+    /*private boolean canDropItem(ItemStack itemStack) {
         if (itemStack != null && itemStack.hasItemMeta()) {
             ItemMeta itemMeta = itemStack.getItemMeta();
             if (itemMeta != null && itemMeta.getPersistentDataContainer().has(key1, PersistentDataType.BYTE)) {
                 Byte setDropValue = itemMeta.getPersistentDataContainer().get(key1, PersistentDataType.BYTE);
+                return setDropValue != null && setDropValue == 0;
+            }
+        }
+        return true;
+    }*/
+
+    private boolean canDropItem(ItemStack itemStack) {
+        if (itemStack != null && itemStack.hasItemMeta()) {
+            ItemMeta itemMeta = itemStack.getItemMeta();
+            if (itemMeta != null && metadataBuilder.hasCustomData(itemStack, key1, Byte.class) ) {
+                Byte setDropValue = metadataBuilder.getCustomData(itemStack, key1, Byte.class);
                 return setDropValue != null && setDropValue == 0;
             }
         }
@@ -457,59 +565,58 @@ public class PlayerInteractionListener implements Listener {
                         }
                         meta.addEnchant(enchantment, level, true);
                     } else {
-                        Component enableMessage = Component.text()
-                                .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                                .append(Component.text("Error: ", NamedTextColor.RED))
-                                .append(Component.text("Enchantment " + enchantmentKey + " not found ", NamedTextColor.RED))
+                        MessageBuilder message1Builder = MessageBuilder.createMessageBuilder();
+                        message1Builder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                                .append("Error: ", ColorText.RED)
+                                .append("Enchantment " + enchantmentKey + " not found ", ColorText.RED)
                                 .build();
-                        Bukkit.getConsoleSender().sendMessage(enableMessage);
+                        message1Builder.BukkitSender();
                     }
                 }
             }
+            MessageBuilder messageBuilderInitial = MessageBuilder.createMessageBuilder();
 
             if (!name.isEmpty()) {
-                LegacyComponentSerializer serializer = LegacyComponentSerializer.builder()
-                        .character('&')
-                        .build();
-                Component displayName = serializer.deserialize(PlaceholderAPI.setPlaceholders(player, name));
-                displayName = displayName.decoration(TextDecoration.ITALIC, false);
-                meta.displayName(displayName);
+                messageBuilderInitial.applyMeta(meta, name, player);
             }
 
             if (!loreList.isEmpty()) {
-                List<Component> lore = new ArrayList<>();
-                LegacyComponentSerializer serializer = LegacyComponentSerializer.builder()
-                        .character('&')
-                        .build();
-                for (String loreLine : loreList) {
-                    Component formattedLoreLine = serializer.deserialize(PlaceholderAPI.setPlaceholders(player, loreLine));
-                    formattedLoreLine = formattedLoreLine.decoration(TextDecoration.ITALIC, false);
-                    lore.add(formattedLoreLine);
-                }
-                meta.lore(lore);
+                messageBuilderInitial.applyLore(meta, loreList, player);
             }
 
-            meta.getPersistentDataContainer().set(key1, PersistentDataType.BYTE, setDrop ? (byte) 1 : (byte) 0);
+
+            //meta.getPersistentDataContainer().set(key1, PersistentDataType.BYTE, setDrop ? (byte) 1 : (byte) 0);
+            metadataBuilder.setCustomData(itemStack, key1, setDrop ? (byte) 1 : (byte) 0);
 
             if (!Objects.requireNonNull(commandOnClick).isEmpty()) {
-                meta.getPersistentDataContainer().set(key2_all, PersistentDataType.STRING, commandOnClick);
+                //meta.getPersistentDataContainer().set(key2_all, PersistentDataType.STRING, commandOnClick);
+                metadataBuilder.setCustomData(itemStack, key2_all, commandOnClick);
             }
 
 
             if (!Objects.requireNonNull(commandLeft).isEmpty()){
-                meta.getPersistentDataContainer().set(key2_Left, PersistentDataType.STRING, commandLeft);
+                //meta.getPersistentDataContainer().set(key2_Left, PersistentDataType.STRING, commandLeft);
+                metadataBuilder.setCustomData(itemStack, key2_Left, commandLeft);
             }
 
             if (!Objects.requireNonNull(commandRight).isEmpty()){
-                meta.getPersistentDataContainer().set(key2_Right, PersistentDataType.STRING, commandRight);
+                //meta.getPersistentDataContainer().set(key2_Right, PersistentDataType.STRING, commandRight);
+                metadataBuilder.setCustomData(itemStack, key2_Right, commandRight);
             }
 
-            meta.getPersistentDataContainer().set(key3, PersistentDataType.BYTE, changeSlot ? (byte) 1 : (byte) 0);
+            /*meta.getPersistentDataContainer().set(key3, PersistentDataType.BYTE, changeSlot ? (byte) 1 : (byte) 0);
             meta.getPersistentDataContainer().set(key4, PersistentDataType.BYTE, addItemOnClick ? (byte) 1 : (byte) 0);
             meta.getPersistentDataContainer().set(key5, PersistentDataType.BYTE, shotBow ? (byte) 1 : (byte) 0);
             meta.getPersistentDataContainer().set(key6, PersistentDataType.BYTE, wearArmor ? (byte) 1 : (byte) 0);
             meta.getPersistentDataContainer().set(key7, PersistentDataType.BYTE, deleteItemOnDeath ? (byte) 1 : (byte) 0);
-            itemStack.setItemMeta(meta);
+            itemStack.setItemMeta(meta);*/
+
+            metadataBuilder.setCustomData(itemStack, key3, changeSlot ? (byte) 1 : (byte) 0);
+            metadataBuilder.setCustomData(itemStack, key4, addItemOnClick ? (byte) 1 : (byte) 0);
+            metadataBuilder.setCustomData(itemStack, key5, shotBow ? (byte) 1 : (byte) 0);
+            metadataBuilder.setCustomData(itemStack, key6, wearArmor ? (byte) 1 : (byte) 0);
+            metadataBuilder.setCustomData(itemStack, key7, deleteItemOnDeath ? (byte) 1 : (byte) 0);
+
             return itemStack;
         }
         return new ItemStack(Material.DIRT, 1);
@@ -563,26 +670,14 @@ public class PlayerInteractionListener implements Listener {
             ItemMeta meta = itemStack.getItemMeta();
 
 
+            MessageBuilder messageBuilder = MessageBuilder.createMessageBuilder();
+
             if (!materialMetadata.getName().isEmpty()) {
-                LegacyComponentSerializer serializer = LegacyComponentSerializer.builder()
-                        .character('&')
-                        .build();
-                Component displayName = serializer.deserialize(PlaceholderAPI.setPlaceholders(player,materialMetadata.getName()));
-                displayName = displayName.decoration(TextDecoration.ITALIC, false);
-                meta.displayName(displayName);
+                messageBuilder.applyMeta(meta, materialMetadata.getName(), player);
             }
 
             if (!materialMetadata.getSubLore().isEmpty()) {
-                List<Component> lore = new ArrayList<>();
-                LegacyComponentSerializer serializer = LegacyComponentSerializer.builder()
-                        .character('&')
-                        .build();
-                for (String loreLine : materialMetadata.getSubLore()) {
-                    Component formattedLoreLine = serializer.deserialize(PlaceholderAPI.setPlaceholders(player, loreLine));
-                    formattedLoreLine = formattedLoreLine.decoration(TextDecoration.ITALIC, false);
-                    lore.add(formattedLoreLine);
-                }
-                meta.lore(lore);
+                messageBuilder.applyLore(meta, materialMetadata.getSubLore(), player);
             }
 
             if (!materialMetadata.getEnchantments().isEmpty()) {
@@ -601,34 +696,46 @@ public class PlayerInteractionListener implements Listener {
                         }
                         meta.addEnchant(enchantment, level, true);
                     } else {
-                        Component enableMessage = Component.text()
-                                .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                                .append(Component.text("Error: ", NamedTextColor.RED))
-                                .append(Component.text("Enchantment " + enchantmentKey + " not found ", NamedTextColor.RED))
+                        MessageBuilder enableMessageBuilder = MessageBuilder.createMessageBuilder();
+                        enableMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                                .append("Error: ", ColorText.RED)
+                                .append("Enchantment " + enchantmentKey + " not found ", ColorText.RED)
                                 .build();
-                        Bukkit.getConsoleSender().sendMessage(enableMessage);
+                        enableMessageBuilder.BukkitSender();
                     }
                 }
             }
 
-            meta.getPersistentDataContainer().set(key1, PersistentDataType.BYTE, materialMetadata.isSetDrop() ? (byte) 1 : (byte) 0);
+            //meta.getPersistentDataContainer().set(key1, PersistentDataType.BYTE, materialMetadata.isSetDrop() ? (byte) 1 : (byte) 0);
+            metadataBuilder.setCustomData(itemStack, key1, materialMetadata.isSetDrop() ? (byte) 1 : (byte) 0);
+
             if (!materialMetadata.getSubcommand().isEmpty()) {
-                meta.getPersistentDataContainer().set(key2_all, PersistentDataType.STRING, materialMetadata.getSubcommand());
+                //meta.getPersistentDataContainer().set(key2_all, PersistentDataType.STRING, materialMetadata.getSubcommand());
+                metadataBuilder.setCustomData(itemStack, key2_all, materialMetadata.getSubcommand());
             }
             if (!materialMetadata.getSubcommandLeft().isEmpty()) {
-                meta.getPersistentDataContainer().set(key2_Left, PersistentDataType.STRING, materialMetadata.getSubcommandLeft());
+                //meta.getPersistentDataContainer().set(key2_Left, PersistentDataType.STRING, materialMetadata.getSubcommandLeft());
+                metadataBuilder.setCustomData(itemStack, key2_Left, materialMetadata.getSubcommandLeft());
             }
             if (!materialMetadata.getSubcommandRight().isEmpty()) {
-                meta.getPersistentDataContainer().set(key2_Right, PersistentDataType.STRING, materialMetadata.getSubcommandRight());
+                //meta.getPersistentDataContainer().set(key2_Right, PersistentDataType.STRING, materialMetadata.getSubcommandRight());
+                metadataBuilder.setCustomData(itemStack, key2_Right, materialMetadata.getSubcommandRight());
             }
-            meta.getPersistentDataContainer().set(key3, PersistentDataType.BYTE, materialMetadata.isChangeSlot() ? (byte) 1 : (byte) 0);
+
+            /*meta.getPersistentDataContainer().set(key3, PersistentDataType.BYTE, materialMetadata.isChangeSlot() ? (byte) 1 : (byte) 0);
             meta.getPersistentDataContainer().set(key4, PersistentDataType.BYTE, materialMetadata.isAddItemOnClick() ? (byte) 1 : (byte) 0);
             meta.getPersistentDataContainer().set(key5, PersistentDataType.BYTE, materialMetadata.shotBow() ? (byte) 1 : (byte) 0);
             meta.getPersistentDataContainer().set(key6, PersistentDataType.BYTE, materialMetadata.wearArmor() ? (byte) 1 : (byte) 0);
             meta.getPersistentDataContainer().set(key7, PersistentDataType.BYTE, materialMetadata.deleteItemOnDeath() ? (byte) 1 : (byte) 0);
-            itemStack.setItemMeta(meta);
-            return itemStack;
+            itemStack.setItemMeta(meta);*/
 
+            metadataBuilder.setCustomData(itemStack, key3, materialMetadata.isChangeSlot() ? (byte) 1 : (byte) 0);
+            metadataBuilder.setCustomData(itemStack, key4, materialMetadata.isAddItemOnClick() ? (byte) 1 : (byte) 0);
+            metadataBuilder.setCustomData(itemStack, key5, materialMetadata.shotBow() ? (byte) 1 : (byte) 0);
+            metadataBuilder.setCustomData(itemStack, key6, materialMetadata.wearArmor() ? (byte) 1 : (byte) 0);
+            metadataBuilder.setCustomData(itemStack, key7, materialMetadata.deleteItemOnDeath() ? (byte) 1 : (byte) 0);
+
+            return itemStack;
         }
         return new ItemStack(Material.DIRT, 1);
     }
@@ -640,12 +747,12 @@ public class PlayerInteractionListener implements Listener {
         plugin.getParkour().ClearCheckpoints();
         materialInfoList.clear();
         worldConfigInMemory.clear();
-        Component message = Component.text()
-                .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.DARK_AQUA))
-                .append(Component.text("[OptimizerHandler] ", NamedTextColor.LIGHT_PURPLE))
-                .append(Component.text("All Events is removed! ", NamedTextColor.RED))
+        MessageBuilder messageBuilder = MessageBuilder.createMessageBuilder();
+        messageBuilder.append("[" + plugin.getName() + "] ", ColorText.DARK_AQUA)
+                .append("[OptimizerHandler] ", ColorText.LIGHT_PURPLE)
+                .append("All Events are removed! ", ColorText.RED)
                 .build();
-        Bukkit.getConsoleSender().sendMessage(message);
+        messageBuilder.BukkitSender();
         List<Player> onlinePlayers = new ArrayList<>(plugin.getServer().getOnlinePlayers());
         if (plugin.getCustomConfig().getClearInventory()) {onlinePlayers.forEach(player -> player.getInventory().clear());}
         onlinePlayers.forEach(player -> {
@@ -725,23 +832,21 @@ public class PlayerInteractionListener implements Listener {
 
     private int checksSlotException(int slot){
         if (slot < 0) {
-            Component enableMessage = Component.text()
-                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                    .append(Component.text("Error: ", NamedTextColor.RED))
-                    .append(Component.text("Exception negative the number of slot = " + slot , NamedTextColor.RED))
-                    //.append(Component.text("                                                                                           ^", NamedTextColor.RED))
+            MessageBuilder messageBuilder = MessageBuilder.createMessageBuilder();
+            messageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                    .append("Error: ", ColorText.RED)
+                    .append("Exception negative the number of slot = " + slot, ColorText.RED)
                     .build();
-            Bukkit.getConsoleSender().sendMessage(enableMessage);
+            messageBuilder.BukkitSender();
             return 0;
         }
         if (slot > 35) {
-            Component enableMessage = Component.text()
-                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                    .append(Component.text("Error: ", NamedTextColor.RED))
-                    .append(Component.text("Exception exceeded the number of slot = " + slot , NamedTextColor.RED))
-                    //.append(Component.text("                                                                                           ^", NamedTextColor.RED))
+            MessageBuilder messageBuilder = MessageBuilder.createMessageBuilder();
+            messageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                    .append("Error: ", ColorText.RED)
+                    .append("Exception exceeded the number of slot = " + slot, ColorText.RED)
                     .build();
-            Bukkit.getConsoleSender().sendMessage(enableMessage);
+            messageBuilder.BukkitSender();
             return 35;
         }
         return slot;
@@ -832,7 +937,8 @@ public class PlayerInteractionListener implements Listener {
         if (item != null) {
             ItemMeta meta = item.getItemMeta();
 
-            if (meta != null && meta.getPersistentDataContainer().has(key5, PersistentDataType.BYTE)){
+
+            /*if (meta != null && meta.getPersistentDataContainer().has(key5, PersistentDataType.BYTE)){
                 if (shot(item)){
                     if (clickedBlock != null){
                         if (allowItemPlacement(clickedBlock.getType())){
@@ -895,6 +1001,74 @@ public class PlayerInteractionListener implements Listener {
                         }
                     }
                 }
+            } */
+
+            if (meta != null && metadataBuilder.hasCustomData(item, key5, Byte.class)){
+                if (shot(item)){
+                    if (clickedBlock != null){
+                        if (allowItemPlacement(clickedBlock.getType())){
+                            return;
+                        }
+                    }
+                    event.setCancelled(true);
+                }
+            }
+
+            if (meta != null && metadataBuilder.hasCustomData(item, key6, Byte.class)){
+                if (wear(item)){
+                    if (clickedBlock != null){
+                        if (allowItemPlacement(clickedBlock.getType())){
+                            return;
+                        }
+                    }
+                    event.setCancelled(true);
+                    player.updateInventory();
+                }
+            }
+
+
+            if (meta != null && metadataBuilder.hasCustomData(item, key2_all, String.class)){
+                String commandOnClick = metadataBuilder.getCustomData(item, key2_all, String.class);
+                if (commandOnClick != null) {
+                    String[] commands = commandOnClick.split(",\\s*");
+                    for (String command : commands) {
+                        Bukkit.dispatchCommand(event.getPlayer(), PlaceholderAPI.setPlaceholders(player, command));
+                    }
+                }
+            }
+
+
+            if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+                if (clickedBlock != null && metadataBuilder.hasCustomData(item, key4, Byte.class)) {
+                    if (!addItemOnClick(item) && !allowItemPlacement(clickedBlock.getType())) {
+                        event.setCancelled(true);
+                    }
+                }
+            }
+
+
+            if (event.getAction() == Action.RIGHT_CLICK_BLOCK || event.getAction() == Action.RIGHT_CLICK_AIR) {
+                if (meta != null && metadataBuilder.hasCustomData(item, key2_Right, String.class)) {
+                    String commandOnClick = metadataBuilder.getCustomData(item, key2_Right, String.class);
+                    if (commandOnClick != null) {
+                        String[] commands = commandOnClick.split(",\\s*");
+                        for (String command : commands) {
+                            Bukkit.dispatchCommand(event.getPlayer(), PlaceholderAPI.setPlaceholders(player, command));
+                        }
+                    }
+                }
+            }
+
+            if (event.getAction() == Action.LEFT_CLICK_BLOCK || event.getAction() == Action.LEFT_CLICK_AIR) {
+                if (meta != null && metadataBuilder.hasCustomData(item, key2_Left, String.class)) {
+                    String commandOnClick = metadataBuilder.getCustomData(item, key2_Left, String.class);
+                    if (commandOnClick != null) {
+                        String[] commands = commandOnClick.split(",\\s*");
+                        for (String command : commands) {
+                            Bukkit.dispatchCommand(event.getPlayer(), PlaceholderAPI.setPlaceholders(player, command));
+                        }
+                    }
+                }
             }
         }
     }
@@ -922,7 +1096,6 @@ public class PlayerInteractionListener implements Listener {
             }
         }
     }
-
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
@@ -1022,15 +1195,15 @@ public class PlayerInteractionListener implements Listener {
     }
 
     public void printMessage(String eventName, Block block, World world, boolean registered) {
-        NamedTextColor color = registered ? NamedTextColor.GREEN : NamedTextColor.RED;
+        ColorText color = registered ? ColorText.GREEN : ColorText.RED;
         String action = registered ? "Registered" : "Unregistered";
-        Component message = Component.text()
-                .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.DARK_AQUA))
-                .append(Component.text("[OptimizerHandler] ", NamedTextColor.LIGHT_PURPLE))
-                .append(Component.text(action + " " + eventName + ":", color))
-                .append(Component.text(" X: " + block.getX() + " Y: " + block.getY() + " Z: " + block.getZ(), NamedTextColor.WHITE))
-                .append(Component.text(" [" + world.getName() + "] ", NamedTextColor.AQUA))
+        MessageBuilder messageBuilder = MessageBuilder.createMessageBuilder();
+        messageBuilder.append("[" + plugin.getName() + "] ", ColorText.DARK_AQUA)
+                .append("[OptimizerHandler] ", ColorText.LIGHT_PURPLE)
+                .append(action + " " + eventName + ":", color)
+                .append(" X: " + block.getX() + " Y: " + block.getY() + " Z: " + block.getZ(), ColorText.WHITE)
+                .append(" [" + world.getName() + "] ", ColorText.AQUA)
                 .build();
-        Bukkit.getConsoleSender().sendMessage(message);
+        messageBuilder.BukkitSender();
     }
 }

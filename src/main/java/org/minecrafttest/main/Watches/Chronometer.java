@@ -1,11 +1,11 @@
 package org.minecrafttest.main.Watches;
 
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextColor;
+
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.minecrafttest.main.Version.MessageBuilder;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -139,7 +139,7 @@ public class Chronometer implements Runnable {
                         milliseconds = 0;
                         Player player = Bukkit.getPlayer(playerUUID);
                         if (player != null) {
-                            player.sendActionBar(Component.text(String.format("%02d:%02d:%03d", minutes, seconds, milliseconds)).color(TextColor.color(255, 0, 0)));
+                            MessageBuilder.createMessageBuilder().sendActionBar(player, String.format("%02d:%02d:%03d", minutes, seconds, milliseconds), 255, 0, 0);
                             player.sendMessage("El cronómetro se ha detenido automáticamente.");
                         }
 
@@ -158,7 +158,7 @@ public class Chronometer implements Runnable {
                         milliseconds = 0;
                         Player player = Bukkit.getPlayer(playerUUID);
                         if (player != null) {
-                            player.sendActionBar(Component.text(String.format("%02d:%02d:%03d", minutes, seconds, milliseconds)).color(TextColor.color(255, 0, 0)));
+                            MessageBuilder.createMessageBuilder().sendActionBar(player, String.format("%02d:%02d:%03d", minutes, seconds, milliseconds), 255, 0, 0);
                             player.sendMessage("El cronómetro se ha detenido automáticamente.");
                         }
 
@@ -171,21 +171,21 @@ public class Chronometer implements Runnable {
                         continue;
                     }
 
-                    TextColor color = interpolateColor(isCountdown ? maxTimeMillis - displayElapsed : displayElapsed, maxTimeMillis);
 
                     Player player = Bukkit.getPlayer(playerUUID);
                     if (player != null) {
+                        MessageBuilder messageBuilder = MessageBuilder.createMessageBuilder();
+                        int[] rgbColor = interpolateColor(isCountdown ? maxTimeMillis - displayElapsed : displayElapsed, maxTimeMillis);
+
                         if ((isCountdown && displayElapsed <= BLINK_THRESHOLD) || (!isCountdown && displayElapsed >= maxTimeMillis - BLINK_THRESHOLD)) {
                             double opacityFactor = 0.5 + 0.5 * Math.sin(Math.PI * blinkTick / 2); // Limit Time blink
                             blinkTick++;
-                            int red = (int) (color.red() * opacityFactor);
-                            int green = (int) (color.green() * opacityFactor);
-                            int blue = (int) (color.blue() * opacityFactor);
-                            TextColor blinkColor = TextColor.color(red, green, blue);
-                            player.sendActionBar(Component.text(String.format("%02d:%02d:%03d", minutes, seconds, milliseconds))
-                                    .color(blinkColor));
+                            int red = (int) (rgbColor[0] * opacityFactor);
+                            int green = (int) (rgbColor[1] * opacityFactor);
+                            int blue = (int) (rgbColor[2] * opacityFactor);
+                            messageBuilder.sendActionBar(player, String.format("%02d:%02d:%03d", minutes, seconds, milliseconds), red, green, blue);
                         } else {
-                            player.sendActionBar(Component.text(String.format("%02d:%02d:%03d", minutes, seconds, milliseconds)).color(color));
+                            messageBuilder.sendActionBar(player, String.format("%02d:%02d:%03d", minutes, seconds, milliseconds), rgbColor[0], rgbColor[1], rgbColor[2]);
                         }
                     }
                 }
@@ -207,9 +207,9 @@ public class Chronometer implements Runnable {
 
     }
 
-    private TextColor interpolateColor(int elapsed, int maxTime) {
+    private int[] interpolateColor(int elapsed, int maxTime) {
         float fraction = (float) elapsed / maxTime;
-        int red, green;
+        int red, green, blue = 0;
 
         if (fraction < 0.5) {
             red = (int) (fraction * 2 * 255);
@@ -219,7 +219,7 @@ public class Chronometer implements Runnable {
             green = (int) ((1 - fraction) * 2 * 255);
         }
 
-        return TextColor.color(red, green, 0);
+        return new int[] {red, green, blue};
     }
 
     public Set<Player> getPlayersInChronometer(){

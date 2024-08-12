@@ -8,13 +8,12 @@ import com.comphenix.protocol.wrappers.WrappedDataValue;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
 
 import com.comphenix.protocol.wrappers.WrappedWatchableObject;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.minecrafttest.main.Hologram.Hologram;
 import org.minecrafttest.main.ItemHandler;
+import org.minecrafttest.main.Version.ArmorBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,10 +24,7 @@ public final class CustomHologram {
 
     private final ItemHandler plugin = ItemHandler.getPlugin();
     private final Hologram hologram = plugin.getHologram();
-    private final LegacyComponentSerializer serializer = LegacyComponentSerializer.builder()
-            .character('&')
-            .hexColors()
-            .useUnusualXRepeatedCharacterHexFormat().build();
+    private final ArmorBuilder armorBuilder = ArmorBuilder.createArmorBuilder().SerializerCodesColor('&');
 
 
     public void createCustomHologramUniquePlayer(Player player, String text) {
@@ -64,9 +60,10 @@ public final class CustomHologram {
         packetMetadata.getIntegers().write(0, entityId);
 
         WrappedDataWatcher metadata = new WrappedDataWatcher();
-        Component color = serializer.deserialize(text);
 
-        Optional<?> opt = Optional.of(WrappedChatComponent.fromChatMessage(serializer.serialize(color))[0].getHandle());
+
+        Optional<?> opt = Optional.of(WrappedChatComponent.fromChatMessage(armorBuilder.SerializeWitchPacketsArmor(text))[0].getHandle());
+
 
         WrappedDataWatcher.WrappedDataWatcherObject customName = new WrappedDataWatcher.WrappedDataWatcherObject(2, WrappedDataWatcher.Registry.getChatComponentSerializer(true));
         WrappedDataWatcher.WrappedDataWatcherObject customNameVisible = new WrappedDataWatcher.WrappedDataWatcherObject(3, WrappedDataWatcher.Registry.get(Boolean.class));

@@ -1,7 +1,5 @@
 package org.minecrafttest.main.Command;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
@@ -16,6 +14,8 @@ import org.minecrafttest.main.Config.Config;
 import org.minecrafttest.main.ItemHandler;
 import org.minecrafttest.main.Listener.PlayerInteractionListener;
 import org.minecrafttest.main.Particles.TypesAnimation;
+import org.minecrafttest.main.Version.Component.ColorText;
+import org.minecrafttest.main.Version.MessageBuilder;
 
 import java.io.File;
 import java.util.*;
@@ -40,23 +40,25 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String label, String[] args) {
         if (!(sender instanceof Player)) {
-            Component Message = Component.text()
-                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.DARK_GRAY))
-                    .append(Component.text("Only players can Execute This Command ", NamedTextColor.DARK_GRAY))
+
+
+            MessageBuilder anotherMessageBuilder = MessageBuilder.createMessageBuilder();
+            anotherMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.DARK_GRAY)
+                    .append("Only players can Execute This Command ", ColorText.DARK_GRAY)
                     .build();
-            sender.sendMessage(Message);
+            anotherMessageBuilder.senderMessage(sender);
             return true;
         }
 
         Player player = (Player) sender;
 
         if (args.length == 0 ) {
-            Component Message = Component.text()
-                    .append(Component.text("Use ", NamedTextColor.AQUA))
-                    .append(Component.text("/"+ label +" help", NamedTextColor.BLUE))
-                    .append(Component.text(" for view details.", NamedTextColor.AQUA))
+            MessageBuilder helpMessageBuilder = MessageBuilder.createMessageBuilder();
+            helpMessageBuilder.append("Use ", ColorText.AQUA)
+                    .append("/" + label + " help", ColorText.BLUE)
+                    .append(" for view details.", ColorText.AQUA)
                     .build();
-            sender.sendMessage(Message);
+            helpMessageBuilder.senderMessage(sender);
             return true;
         }
         if (args.length == 1 && args[0].equalsIgnoreCase("help")) {
@@ -68,17 +70,18 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             plugin.reloadConfig();
             String file = !Objects.equals(configName, "") ? configName : "subConfig";
             listener.updates("profiles/" + file);
-            Component enableMessage = Component.text()
-                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.BLUE))
-                    .append(Component.text("Reload Config! ", NamedTextColor.WHITE))
-                    .build();
-            Bukkit.getConsoleSender().sendMessage(enableMessage);
-            sender.sendMessage(enableMessage);
+                MessageBuilder enableMessageBuilder = MessageBuilder.createMessageBuilder();
+                enableMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.BLUE)
+                        .append("Reload Config! ", ColorText.WHITE)
+                        .build();
+                enableMessageBuilder.BukkitSender();
+                enableMessageBuilder.senderMessage(sender);
             }else {
-                sender.sendMessage(Component.text()
-                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                        .append(Component.text("You do not have permission to use this command.", NamedTextColor.RED))
-                        .build());
+                MessageBuilder noPermissionMessageBuilder = MessageBuilder.createMessageBuilder();
+                noPermissionMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                        .append("You do not have permission to use this command.", ColorText.RED)
+                        .build();
+                noPermissionMessageBuilder.senderMessage(sender);
             }
             return true;
         }
@@ -128,16 +131,18 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                             listener.runThreads();
                         }
                     } else {
-                        sender.sendMessage(Component.text()
-                                .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                                .append(Component.text("Items of \"" + args[2] + "\" Not Found", NamedTextColor.RED))
-                                .build());
+                        MessageBuilder notFoundMessageBuilder = MessageBuilder.createMessageBuilder();
+                        notFoundMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                                .append("Items of \"" + args[2] + "\" Not Found", ColorText.RED)
+                                .build();
+                        notFoundMessageBuilder.senderMessage(sender);
                     }
                 } else {
-                    sender.sendMessage(Component.text()
-                            .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                            .append(Component.text("You do not have permission to use this command.", NamedTextColor.RED))
-                            .build());
+                    MessageBuilder noPermissionMessageBuilder = MessageBuilder.createMessageBuilder();
+                    noPermissionMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                            .append("You do not have permission to use this command.", ColorText.RED)
+                            .build();
+                    noPermissionMessageBuilder.senderMessage(sender);
                 }
                 return true;
             }
@@ -153,24 +158,26 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                 configName = configNameBuilder.toString();
                 File configFile = new File(plugin.getDataFolder() + File.separator + "profiles", configName + ".yml");
                 if (!configFile.exists()) {
-                    sender.sendMessage(Component.text()
-                            .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                            .append(Component.text("YML not Found ", NamedTextColor.RED))
-                            .append(Component.text(configName + ".yml", NamedTextColor.RED))
-                            .build());
+                    MessageBuilder ymlNotFoundMessageBuilder = MessageBuilder.createMessageBuilder();
+                    ymlNotFoundMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                            .append("YML not Found ", ColorText.RED)
+                            .append(configName + ".yml", ColorText.RED)
+                            .build();
+                    ymlNotFoundMessageBuilder.senderMessage(sender);
                     return true;
                 }
                 listener.updates("profiles/" + configName);
-                Component enableMessage = Component.text()
-                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.BLUE))
-                        .append(Component.text("Config loaded: " + configName, NamedTextColor.WHITE))
+                MessageBuilder enableMessageBuilder = MessageBuilder.createMessageBuilder();
+                enableMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.BLUE)
+                        .append("Config loaded: " + configName, ColorText.WHITE)
                         .build();
-                sender.sendMessage(enableMessage);
+                enableMessageBuilder.senderMessage(sender);
             } else {
-                sender.sendMessage(Component.text()
-                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                        .append(Component.text("You do not have permission to use this command.", NamedTextColor.RED))
-                        .build());
+                MessageBuilder noPermissionMessageBuilder = MessageBuilder.createMessageBuilder();
+                noPermissionMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                        .append("You do not have permission to use this command.", ColorText.RED)
+                        .build();
+                noPermissionMessageBuilder.senderMessage(sender);
             }
             return true;
         }
@@ -188,10 +195,11 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                         final int index = 5;
                         if (registerEventByCommand(sender, args, nameWorld, index)) return true;
                     }else {
-                        sender.sendMessage(Component.text()
-                                .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                                .append(Component.text("Incorrect Syntax's", NamedTextColor.RED))
-                                .build());
+                        MessageBuilder incorrectSyntaxMessageBuilder = MessageBuilder.createMessageBuilder();
+                        incorrectSyntaxMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                                .append("Incorrect Syntax's", ColorText.RED)
+                                .build();
+                        incorrectSyntaxMessageBuilder.senderMessage(sender);
                     }
                 }else {
                     if (args[3].startsWith("~")) {
@@ -236,19 +244,21 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                         if (registerEventByCommand(sender, args, nameWorld, index)) return true;
                     }
                     else {
-                        sender.sendMessage(Component.text()
-                                .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                                .append(Component.text("Incorrect Syntax's", NamedTextColor.RED))
-                                .build());
+                        MessageBuilder syntaxErrorMessageBuilder = MessageBuilder.createMessageBuilder();
+                        syntaxErrorMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                                .append("Incorrect Syntax's", ColorText.RED)
+                                .build();
+                        syntaxErrorMessageBuilder.senderMessage(sender);
                     }
                 }
                 return true;
 
             } catch (NumberFormatException e) {
-                sender.sendMessage(Component.text()
-                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                        .append(Component.text("Invalid coordinates provided.", NamedTextColor.RED))
-                        .build());
+                MessageBuilder invalidCoordinatesMessageBuilder = MessageBuilder.createMessageBuilder();
+                invalidCoordinatesMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                        .append("Invalid coordinates provided.", ColorText.RED)
+                        .build();
+                invalidCoordinatesMessageBuilder.senderMessage(sender);
                 return true;
             }
         }
@@ -269,7 +279,11 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                                 if (typeActionsLowerCase.contains(action)) {
                                     return seen.add(action);
                                 } else {
-                                    sender.sendMessage(Component.text("[" + plugin.getName() + "] action '" + action + "' Is not recognizable.", NamedTextColor.RED));
+                                    MessageBuilder actionNotRecognizableMessageBuilder = MessageBuilder.createMessageBuilder();
+                                    actionNotRecognizableMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                                            .append("action '" + action + "' Is not recognizable.", ColorText.RED)
+                                            .build();
+                                    actionNotRecognizableMessageBuilder.senderMessage(sender);
                                     return false;
                                 }
                             })
@@ -287,13 +301,19 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                             clonedList.addAll(actions);
                             listener.worldConfigInMemory.replace(args[2], clonedList);
                         }
-                        sender.sendMessage(Component.text("[" + plugin.getName() + "] Registered!: " + String.join(", ", actions), NamedTextColor.GREEN));
+                        MessageBuilder registeredActionsMessageBuilder = MessageBuilder.createMessageBuilder();
+                        registeredActionsMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.GREEN)
+                                .append("Registered!: " + String.join(", ", actions), ColorText.GREEN)
+                                .build();
+                        registeredActionsMessageBuilder.senderMessage(sender);
                     }
                 }else {
-                    sender.sendMessage(Component.text()
-                            .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                            .append(Component.text("Event Not Found!", NamedTextColor.RED))
-                            .build());
+                    MessageBuilder eventNotFoundMessageBuilder = MessageBuilder.createMessageBuilder();
+                    eventNotFoundMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                            .append("Event Not Found!", ColorText.RED)
+                            .build();
+                    eventNotFoundMessageBuilder.senderMessage(sender);
+
                     return true;
                 }
             }
@@ -303,10 +323,11 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
         if (args.length >= 2 && args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("animation")){
             if (args.length > 2 && listener.worldConfig.getKeys(false).contains(args[2])) {
                 if (args.length == 3){
-                    sender.sendMessage(Component.text()
-                            .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                            .append(Component.text("Select Animation", NamedTextColor.RED))
-                            .build());
+                    MessageBuilder selectAnimationMessageBuilder = MessageBuilder.createMessageBuilder();
+                    selectAnimationMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                            .append("Select Animation", ColorText.RED)
+                            .build();
+                    selectAnimationMessageBuilder.senderMessage(sender);
                     return true;
                 }
                 TypesAnimation animation = getAnimationByName(args[3]);
@@ -315,10 +336,11 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                     try {
                     range_of_view = Integer.parseInt(args[4]);
                     } catch (Exception e){
-                        sender.sendMessage(Component.text()
-                                .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                                .append(Component.text("Invalid "+ args[4] +" to cast to int ", NamedTextColor.RED))
-                                .build());
+                        MessageBuilder invalidCastMessageBuilder = MessageBuilder.createMessageBuilder();
+                        invalidCastMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                                .append("Invalid " + args[4] + " to cast to int ", ColorText.RED)
+                                .build();
+                        invalidCastMessageBuilder.senderMessage(sender);
                         return true;
                 }
 
@@ -335,15 +357,22 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                                 metadata.set(5, descAnimation);
                                 plugin.getParticleAnimation().playAnimation(args[2], (Block) metadata.get(0), animation, range_of_view);
                                 listener.worldConfigInMemory.replace(args[2], metadata);
-                                sender.sendMessage(Component.text("[" + plugin.getName() + "] Registered Animation!: " + String.join(", ", String.valueOf(descAnimation)), NamedTextColor.GREEN));
+                                MessageBuilder registeredAnimationMessageBuilder = MessageBuilder.createMessageBuilder();
+                                registeredAnimationMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.GREEN)
+                                        .append("Registered Animation!: " + String.join(", ", String.valueOf(descAnimation)), ColorText.GREEN)
+                                        .build();
+                                registeredAnimationMessageBuilder.senderMessage(sender);
+
                             }
                     }
                 }
             }else {
-                sender.sendMessage(Component.text()
-                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                        .append(Component.text("Event Not Found!", NamedTextColor.RED))
-                        .build());
+                MessageBuilder eventNotFoundMessageBuilder = MessageBuilder.createMessageBuilder();
+                eventNotFoundMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                        .append("Event Not Found!", ColorText.RED)
+                        .build();
+                eventNotFoundMessageBuilder.senderMessage(sender);
+
             }
             return true;
         }
@@ -371,14 +400,20 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                         List<Object> metadata = new ArrayList<>(listener.worldConfigInMemory.get(args[2]));
                         metadata.set(1, commands);
                         listener.worldConfigInMemory.replace(args[2], metadata);
-                        sender.sendMessage(Component.text("[" + plugin.getName() + "] Registered Commands!: " + String.join(", ", String.valueOf(commands)), NamedTextColor.GREEN));
+                        MessageBuilder registeredCommandsMessageBuilder = MessageBuilder.createMessageBuilder();
+                        registeredCommandsMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.GREEN)
+                                .append("Registered Commands!: " + String.join(", ", String.valueOf(commands)), ColorText.GREEN)
+                                .build();
+                        registeredCommandsMessageBuilder.senderMessage(sender);
                     }
 
                 } else {
-                    sender.sendMessage(Component.text()
-                            .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                            .append(Component.text("Incorrect Syntax in > \" ", NamedTextColor.RED))
-                            .build());
+                    MessageBuilder incorrectSyntaxMessageBuilder = MessageBuilder.createMessageBuilder();
+                    incorrectSyntaxMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                            .append("Incorrect Syntax in > \" ", ColorText.RED)
+                            .build();
+                    incorrectSyntaxMessageBuilder.senderMessage(sender);
+
                 }
                 return true;
             }
@@ -393,7 +428,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (args.length > 3 && args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("all_minimums_y")){
+        if (args.length > 3 && args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("all_minimums_y") || args[2].equalsIgnoreCase("all_maximum_y")){
             if (args.length > 4 ){
                 try {
                     int index = 4   ;
@@ -408,23 +443,20 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                     } else {
                         y = Double.parseDouble(args[index]);
                     }
-
-                    if (plugin.getParkour().RegisterParkourMinFallInY(args[3], args[4], (int) y)){
-                        sender.sendMessage("Registered Min!");
-                    }else {
-                        sender.sendMessage("Min_y < Checkpoint");
-                    }
-
+                    String type = args[2].equalsIgnoreCase("all_minimums_y")? "min_y":"max_y";
+                    plugin.getParkour().RegisterParkourAllFallInY(args[3], (int) y, type, sender);
+                    return true;
                 }catch (NumberFormatException e) {
-                    sender.sendMessage(Component.text()
-                            .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                            .append(Component.text("Invalid coordinates provided.", NamedTextColor.RED))
-                            .build());
+                    MessageBuilder invalidCoordinatesMessageBuilder = MessageBuilder.createMessageBuilder();
+                    invalidCoordinatesMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                            .append("Invalid coordinates provided.", ColorText.RED)
+                            .build();
+                    invalidCoordinatesMessageBuilder.senderMessage(sender);
                 }
             }
         }
 
-        if (args.length >= 4 && args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("minimums_y")){
+        if (args.length >= 4 && args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("minimums_y") || args[2].equalsIgnoreCase("maximum_y")){
             if (args.length > 4 && plugin.getParkour().parkourConfiguration.contains(args[3])){
                 ConfigurationSection parkourSection = plugin.getParkour().parkourConfiguration.getConfigurationSection(args[3]);
                 if (args.length > 5 && parkourSection != null){
@@ -444,17 +476,20 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                                     y = Double.parseDouble(args[index]);
                                 }
 
-                                if (plugin.getParkour().RegisterParkourMinFallInY(args[3], args[4], (int) y)){
-                                    sender.sendMessage("Registered Min!");
+                                boolean isMin = args[2].equalsIgnoreCase("minimums_y");
+                                String type = isMin? "min_y":"max_y";
+                                if (plugin.getParkour().RegisterParkourFallInY(args[3], args[4], (int) y, type ,isMin)){
+                                    sender.sendMessage("Registered "+ type);
                                 }else {
-                                    sender.sendMessage("Min_y < Checkpoint");
+                                    sender.sendMessage("La posicion es mayor o menor que el checkpoint");
                                 }
 
                             }catch (NumberFormatException e) {
-                                sender.sendMessage(Component.text()
-                                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                                        .append(Component.text("Invalid coordinates provided.", NamedTextColor.RED))
-                                        .build());
+                                MessageBuilder invalidCoordinatesMessageBuilder = MessageBuilder.createMessageBuilder();
+                                invalidCoordinatesMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                                        .append("Invalid coordinates provided.", ColorText.RED)
+                                        .build();
+                                invalidCoordinatesMessageBuilder.senderMessage(sender);
                             }
                         }
                     }
@@ -463,7 +498,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (args.length > 2 && args[0].equalsIgnoreCase("parkour") && args[1].equalsIgnoreCase("start")) {
+        if (args[0].equalsIgnoreCase("parkour") && args[1].equalsIgnoreCase("start")) {
             String parkourName = args[2];
             if (plugin.getParkour().parkourConfiguration.contains(parkourName)) {
                 plugin.getParkour().setPlayerParkour(player, parkourName);
@@ -475,7 +510,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (args.length > 2 && args[0].equalsIgnoreCase("parkour") && args[1].equalsIgnoreCase("restart")) {
+        if (args[0].equalsIgnoreCase("parkour") && args[1].equalsIgnoreCase("restart")) {
             String parkourName = args[2];
             if (plugin.getParkour().parkourConfiguration.contains(args[2])) {
                 plugin.getParkour().RemoveCheckPointPlayer(args[2], player);
@@ -492,7 +527,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (args.length > 2 && args[0].equalsIgnoreCase("parkour") && args[1].equalsIgnoreCase("finish")) {
+        if (args[0].equalsIgnoreCase("parkour") && args[1].equalsIgnoreCase("finish")) {
             String parkourName = args[2];
             if (plugin.getParkour().parkourConfiguration.contains(args[2])) {
                 plugin.getParkour().getPlayerLastCheckpoint().remove(player);
@@ -524,10 +559,11 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                             }
 
                         }else {
-                            sender.sendMessage(Component.text()
-                                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                                    .append(Component.text("Incorrect Syntax's", NamedTextColor.RED))
-                                    .build());
+                            MessageBuilder incorrectSyntaxMessageBuilder = MessageBuilder.createMessageBuilder();
+                            incorrectSyntaxMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                                    .append("Incorrect Syntax's", ColorText.RED)
+                                    .build();
+                            incorrectSyntaxMessageBuilder.senderMessage(sender);
                         }
                     }else {
                         if (args[index].startsWith("~")) {
@@ -575,19 +611,21 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                             }
                         }
                         else {
-                            sender.sendMessage(Component.text()
-                                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                                    .append(Component.text("Incorrect Syntax's", NamedTextColor.RED))
-                                    .build());
+                            MessageBuilder incorrectSyntaxMessageBuilder = MessageBuilder.createMessageBuilder();
+                            incorrectSyntaxMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                                    .append("Incorrect Syntax's", ColorText.RED)
+                                    .build();
+                            incorrectSyntaxMessageBuilder.senderMessage(sender);
                         }
                     }
                     return true;
 
                 } catch (NumberFormatException e) {
-                    sender.sendMessage(Component.text()
-                            .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                            .append(Component.text("Invalid coordinates provided.", NamedTextColor.RED))
-                            .build());
+                    MessageBuilder invalidCoordinatesMessageBuilder = MessageBuilder.createMessageBuilder();
+                    invalidCoordinatesMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                            .append("Invalid coordinates provided.", ColorText.RED)
+                            .build();
+                    invalidCoordinatesMessageBuilder.senderMessage(sender);
                     return true;
                 }
             }else {
@@ -596,15 +634,15 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             }
         }
 
-        Component errorMessage = Component.text()
-                .append(Component.text("Command not recognized: ", NamedTextColor.RED))
-                .append(Component.text(args[0], NamedTextColor.RED))
-                .append(Component.text(". ", NamedTextColor.RED))
-                .append(Component.text("Use ", NamedTextColor.RED))
-                .append(Component.text("/"+ label + " help", NamedTextColor.BLUE))
-                .append(Component.text(" for view details.", NamedTextColor.RED))
+        MessageBuilder errorMessageBuilder = MessageBuilder.createMessageBuilder();
+        errorMessageBuilder.append("Command not recognized: ", ColorText.RED)
+                .append(args[0], ColorText.RED)
+                .append(". ", ColorText.RED)
+                .append("Use ", ColorText.RED)
+                .append("/" + label + " help", ColorText.BLUE)
+                .append(" for view details.", ColorText.RED)
                 .build();
-        sender.sendMessage(errorMessage);
+        errorMessageBuilder.senderMessage(sender);
         return false;
     }
 
@@ -620,10 +658,12 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
         if (args[index].startsWith("\"") && marks == 2) {
             builder.append(Arrays.stream(args).skip(index).collect(Collectors.joining(" ")));
         }else {
-            sender.sendMessage(Component.text()
-                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                    .append(Component.text("Incorrect Syntax's in > \" ", NamedTextColor.RED))
-                    .build());
+            MessageBuilder syntaxErrorMessageBuilder = MessageBuilder.createMessageBuilder();
+            syntaxErrorMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                    .append("Incorrect Syntax's in > \" ", ColorText.RED)
+                    .build();
+            syntaxErrorMessageBuilder.senderMessage(sender);
+
             return true;
         }
 
@@ -661,39 +701,51 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             }
 
             if (listener.worldConfig.contains(eventName)) {
-                sender.sendMessage(Component.text()
-                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                        .append(Component.text("This event already registered!", NamedTextColor.RED))
-                        .build());
+                MessageBuilder eventAlreadyRegisteredMessageBuilder = MessageBuilder.createMessageBuilder();
+                eventAlreadyRegisteredMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                        .append("This event already registered!", ColorText.RED)
+                        .build();
+                eventAlreadyRegisteredMessageBuilder.senderMessage(sender);
                 return;
             }
             if (location.isChunkLoaded()){
                 listener.worldConfigInMemory.put(eventName, Arrays.asList(location.getBlock(), Collections.singletonList(onCommand), location.getChunk().getX(), location.getChunk().getZ(), world, Arrays.asList(TypesAnimation.NONE.name(),0), ""));
-                sender.sendMessage(Component.text()
-                        .append(Component.text("[OptimizerHandler] ", NamedTextColor.LIGHT_PURPLE))
-                        .append(Component.text("Registered "+ eventName + ":", NamedTextColor.GREEN))
-                        .append(Component.text("Is Loaded in memory.")));
-                Component addMessage = Component.text()
-                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.DARK_AQUA))
-                        .append(Component.text("[OptimizerHandler] ", NamedTextColor.LIGHT_PURPLE))
-                        .append(Component.text("Registered "+ eventName + ":", NamedTextColor.GREEN))
-                        .append(Component.text(" X: "+location.getBlockX()+ " Y: "+location.getBlockY()+ " Z: "+location.getBlockZ() ,NamedTextColor.WHITE))
-                        .append(Component.text(" [" + world.getName() + "] ", NamedTextColor.AQUA))
+                // Mensaje para el sender
+                MessageBuilder registeredEventMessageBuilder = MessageBuilder.createMessageBuilder();
+                registeredEventMessageBuilder.append("[OptimizerHandler] ", ColorText.LIGHT_PURPLE)
+                        .append("Registered " + eventName + ":", ColorText.GREEN)
+                        .append("Is Loaded in memory.")
                         .build();
-                Bukkit.getConsoleSender().sendMessage(addMessage);
+                registeredEventMessageBuilder.senderMessage(sender);
+
+                // Mensaje para el console sender
+                MessageBuilder locationMessageBuilder = MessageBuilder.createMessageBuilder();
+                locationMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.DARK_AQUA)
+                        .append("[OptimizerHandler] ", ColorText.LIGHT_PURPLE)
+                        .append("Registered " + eventName + ":", ColorText.GREEN)
+                        .append(" X: " + location.getBlockX() + " Y: " + location.getBlockY() + " Z: " + location.getBlockZ(), ColorText.WHITE)
+                        .append(" [" + world.getName() + "] ", ColorText.AQUA)
+                        .build();
+                locationMessageBuilder.BukkitSender();
+
             }else {
-                sender.sendMessage(Component.text()
-                        .append(Component.text("[OptimizerHandler] ", NamedTextColor.LIGHT_PURPLE))
-                        .append(Component.text("Unregistered "+ eventName + ":", NamedTextColor.RED))
-                        .append(Component.text("The chunk is not loaded but will be registered in memory when it is active.")));
-                Component quitMessage = Component.text()
-                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.DARK_AQUA))
-                        .append(Component.text("[OptimizerHandler] ", NamedTextColor.LIGHT_PURPLE))
-                        .append(Component.text("Unregistered "+ eventName + ":", NamedTextColor.RED))
-                        .append(Component.text(" X: "+location.getBlockX()+ " Y: "+location.getBlockY()+ " Z: "+location.getBlockZ() ,NamedTextColor.WHITE))
-                        .append(Component.text(" [" + world.getName() + "] ", NamedTextColor.AQUA))
+                // Mensaje para el sender
+                MessageBuilder unregisteredEventMessageBuilder = MessageBuilder.createMessageBuilder();
+                unregisteredEventMessageBuilder.append("[OptimizerHandler] ", ColorText.LIGHT_PURPLE)
+                        .append("Unregistered " + eventName + ":", ColorText.RED)
+                        .append("The chunk is not loaded but will be registered in memory when it is active.")
                         .build();
-                Bukkit.getConsoleSender().sendMessage(quitMessage);
+                unregisteredEventMessageBuilder.senderMessage(sender);
+
+                // Mensaje para el console sender
+                MessageBuilder quitMessageBuilder = MessageBuilder.createMessageBuilder();
+                quitMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.DARK_AQUA)
+                        .append("[OptimizerHandler] ", ColorText.LIGHT_PURPLE)
+                        .append("Unregistered " + eventName + ":", ColorText.RED)
+                        .append(" X: " + location.getBlockX() + " Y: " + location.getBlockY() + " Z: " + location.getBlockZ(), ColorText.WHITE)
+                        .append(" [" + world.getName() + "] ", ColorText.AQUA)
+                        .build();
+                quitMessageBuilder.BukkitSender();
             }
 
             String finalEventName = eventName;
@@ -711,49 +763,59 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                 listener.worldConfig.set(finalEventName + ".animation", Arrays.asList(TypesAnimation.NONE.name(),0));
                 listener.worldConfig.set(finalEventName + ".action", "");
                 config.saveWorldConfig(listener.worldConfig, file);
-                sender.sendMessage(Component.text()
-                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.LIGHT_PURPLE))
-                        .append(Component.text(" Success!", NamedTextColor.WHITE))
-                        .append(Component.text(" event ", NamedTextColor.WHITE))
-                        .append(Component.text(" ➜ ", NamedTextColor.AQUA))
-                        .append(Component.text("[" + finalEventName + "] ", NamedTextColor.BLUE))
-                        .append(Component.text("[" + nameWorld + "] ", NamedTextColor.DARK_AQUA))
-                        .append(Component.text("[cords]", NamedTextColor.AQUA))
-                        .append(Component.text(" [location block x y z] " + location.getBlockX() + " " + location.getBlockY() + " "+ location.getBlockZ(), NamedTextColor.GOLD))
-                        .append(Component.text(" [type] " + block.getType(), NamedTextColor.WHITE))
-                        .build());
+                MessageBuilder successEventMessageBuilder = MessageBuilder.createMessageBuilder();
+                successEventMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.LIGHT_PURPLE)
+                        .append(" Success!", ColorText.WHITE)
+                        .append(" event ", ColorText.WHITE)
+                        .append(" ➜ ", ColorText.AQUA)
+                        .append("[" + finalEventName + "] ", ColorText.BLUE)
+                        .append("[" + nameWorld + "] ", ColorText.DARK_AQUA)
+                        .append("[cords]", ColorText.AQUA)
+                        .append(" [location block x y z] " + location.getBlockX() + " " + location.getBlockY() + " " + location.getBlockZ(), ColorText.GOLD)
+                        .append(" [type] " + block.getType(), ColorText.WHITE)
+                        .build();
+                successEventMessageBuilder.senderMessage(sender);
             });
         }else {
-            sender.sendMessage(Component.text()
-                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.RED))
-                    .append(Component.text("nameWorld not found! ", NamedTextColor.WHITE))
-                    .build());
+            MessageBuilder nameWorldNotFoundMessageBuilder = MessageBuilder.createMessageBuilder();
+            nameWorldNotFoundMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.RED)
+                    .append("nameWorld not found! ", ColorText.WHITE)
+                    .build();
+            nameWorldNotFoundMessageBuilder.senderMessage(sender);
+
         }
     }
 
     private void sendCommandList(CommandSender sender, String label) {
-        Component commands = Component.text()
-                .append(Component.text("[List of commands]", NamedTextColor.DARK_AQUA))
+        // Mensaje de lista de comandos
+        MessageBuilder commandsMessageBuilder = MessageBuilder.createMessageBuilder();
+        commandsMessageBuilder.append("[List of commands]", ColorText.DARK_AQUA)
                 .build();
-        Component commands1 = Component.text()
-                .append(Component.text("/"+ label, NamedTextColor.WHITE))
-                .append(Component.text(" reload", NamedTextColor.BLUE))
-                .append(Component.text("  - Reloads the configuration ", NamedTextColor.WHITE))
+        commandsMessageBuilder.senderMessage(sender);
+
+        // Comando /label reload
+        MessageBuilder reloadCommandBuilder = MessageBuilder.createMessageBuilder();
+        reloadCommandBuilder.append("/" + label, ColorText.WHITE)
+                .append(" reload", ColorText.BLUE)
+                .append("  - Reloads the configuration ", ColorText.WHITE)
                 .build();
-        Component commands2 = Component.text()
-                .append(Component.text("/"+ label, NamedTextColor.WHITE))
-                .append(Component.text(" help", NamedTextColor.BLUE))
-                .append(Component.text("  - View All Configurations of commands ", NamedTextColor.WHITE))
+        reloadCommandBuilder.senderMessage(sender);
+
+        // Comando /label help
+        MessageBuilder helpCommandBuilder = MessageBuilder.createMessageBuilder();
+        helpCommandBuilder.append("/" + label, ColorText.WHITE)
+                .append(" help", ColorText.BLUE)
+                .append("  - View All Configurations of commands ", ColorText.WHITE)
                 .build();
-        Component commands3 = Component.text()
-                .append(Component.text("/"+ label, NamedTextColor.WHITE))
-                .append(Component.text(" load <configName>", NamedTextColor.BLUE))
-                .append(Component.text("  - Load a specific configuration file", NamedTextColor.WHITE))
+        helpCommandBuilder.senderMessage(sender);
+
+        // Comando /label load <configName>
+        MessageBuilder loadCommandBuilder = MessageBuilder.createMessageBuilder();
+        loadCommandBuilder.append("/" + label, ColorText.WHITE)
+                .append(" load <configName>", ColorText.BLUE)
+                .append("  - Load a specific configuration file", ColorText.WHITE)
                 .build();
-        sender.sendMessage(commands);
-        sender.sendMessage(commands1);
-        sender.sendMessage(commands2);
-        sender.sendMessage(commands3);
+        loadCommandBuilder.senderMessage(sender);
     }
 
 
@@ -808,7 +870,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             }
 
             if (args.length == 3 && args[1].equalsIgnoreCase("parkour") ){
-                return Arrays.asList("checkpoint", "name", "minimums_y");
+                return Arrays.asList("checkpoint", "name", "minimums_y", "maximum_y", "all_minimums_y", "all_maximum_y");
             }
 
             if (args.length == 4 && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("name")){
@@ -831,7 +893,7 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                 return cordsParkour(args[4],sender,args,index);
             }
 
-            if (args.length >= 4 && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("minimums_y")){
+            if (args.length >= 4 && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("minimums_y") ||  args[2].equalsIgnoreCase("maximum_y")){
 
                 if (args.length == 4){
                     return new ArrayList<>(plugin.getParkour().parkourConfiguration.getKeys(false));
@@ -851,6 +913,19 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                 }
             }
 
+            if (args.length >= 4 && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("all_minimums_y") || args[2].equalsIgnoreCase("all_maximum_y")){
+
+                if (args.length == 4){
+                    return new ArrayList<>(plugin.getParkour().parkourConfiguration.getKeys(false));
+                }
+                if (plugin.getParkour().parkourConfiguration.contains(args[3]) && args.length == 5){
+                    ConfigurationSection parkourSection = plugin.getParkour().parkourConfiguration.getConfigurationSection(args[3]);
+                    if (Objects.requireNonNull(parkourSection).contains(args[4])){
+                        Player player = (Player) sender;
+                        return Arrays.asList(String.valueOf(player.getLocation().getY()), "~");
+                    }
+                }
+            }
         }
         return new ArrayList<>();
     }

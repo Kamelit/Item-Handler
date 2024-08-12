@@ -3,12 +3,15 @@ package org.minecrafttest.main.Parkour;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.minecrafttest.main.Config.Config;
 import org.minecrafttest.main.ItemHandler;
 import org.minecrafttest.main.Particles.TypesAnimation;
+import org.minecrafttest.main.Version.Component.ColorText;
+import org.minecrafttest.main.Version.MessageBuilder;
 
 import java.io.File;
 import java.util.*;
@@ -36,10 +39,11 @@ public class Parkour {
                     int x = config.getInt(key + ".x");
                     int y = config.getInt(key + ".y");
                     int z = config.getInt(key + ".z");
-                    int minY = config.getInt(key + ".min_y");
+                    int minY = config.getInt(key + ".min_y", Integer.MIN_VALUE);
+                    int maxY = config.getInt(key + ".max_y", Integer.MAX_VALUE);
                     if (world != null) {
                         Location location = new Location(world, x, y, z);
-                        checkpoints.add(new Checkpoint(path , key ,location, minY));
+                        checkpoints.add(new Checkpoint(path , key ,location, minY, maxY));
                     }
                 }
             }
@@ -115,12 +119,29 @@ public class Parkour {
     }
 
 
-    public boolean RegisterParkourMinFallInY(String PrincipalPath, String Checkpoint , int Y_min){
-        String path = PrincipalPath+"."+Checkpoint;
-        int registered_Y = parkourConfiguration.getInt(path+".y");
-        if (Y_min < registered_Y){
-            parkourConfiguration.set(PrincipalPath+"."+Checkpoint+".min_y", Y_min);
-            config.saveWorldConfig(parkourConfiguration,file);
+    public void RegisterParkourAllFallInY(String PrincipalPath, int Y_value, String type, CommandSender sender) {
+        ConfigurationSection section = parkourConfiguration.getConfigurationSection(PrincipalPath);
+        MessageBuilder messageBuilder = MessageBuilder.createMessageBuilder();
+        messageBuilder.append(PrincipalPath + ": ");
+        if (section != null) {
+            for (String paths : section.getKeys(false)) {
+                section.set(paths + "." + type, Y_value);
+                messageBuilder.append(" " + paths + ": " + Y_value, ColorText.GOLD);
+            }
+            config.saveWorldConfig(parkourConfiguration, file);
+            messageBuilder.build();
+            messageBuilder.senderMessage(sender);
+        }
+    }
+
+    public boolean RegisterParkourFallInY(String PrincipalPath, String Checkpoint, int Y_value, String type, boolean isMin) {
+        String path = PrincipalPath + "." + Checkpoint;
+        int registered_Y = parkourConfiguration.getInt(path + ".y");
+        boolean shouldUpdate = isMin ? Y_value < registered_Y : Y_value > registered_Y;
+
+        if (shouldUpdate) {
+            parkourConfiguration.set(path + "." + type, Y_value);
+            config.saveWorldConfig(parkourConfiguration, file);
             return true;
         }
         return false;

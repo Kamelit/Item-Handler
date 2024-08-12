@@ -21,8 +21,6 @@ public class ArmorStandDataTypeAdapter extends TypeAdapter<ArmorStandData> {
         out.name("X").value(data.getLocation().getX());
         out.name("Y").value(data.getLocation().getY());
         out.name("Z").value(data.getLocation().getZ());
-        out.name("Yaw").value(data.getLocation().getYaw());
-        out.name("Pitch").value(data.getLocation().getPitch());
         out.endObject();
     }
 
@@ -32,7 +30,6 @@ public class ArmorStandDataTypeAdapter extends TypeAdapter<ArmorStandData> {
         int id = -1;
         String world = null;
         double x = 0, y = 0, z = 0;
-        float yaw = 0, pitch = 0;
 
         in.beginObject();
         while (in.hasNext()) {
@@ -55,17 +52,11 @@ public class ArmorStandDataTypeAdapter extends TypeAdapter<ArmorStandData> {
                 case "Z":
                     z = in.nextDouble();
                     break;
-                case "Yaw":
-                    yaw = (float) in.nextDouble();
-                    break;
-                case "Pitch":
-                    pitch = (float) in.nextDouble();
-                    break;
             }
         }
         in.endObject();
 
-        Location location = new Location(Bukkit.getWorld(Objects.requireNonNull(world)), x, y, z, yaw, pitch);
+        Location location = new Location(Bukkit.getWorld(Objects.requireNonNull(world)), x, y, z);
         return new ArmorStandData(uuid, id, location);
     }
 }

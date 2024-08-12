@@ -1,8 +1,15 @@
 package org.minecrafttest.main.Version.Component;
 
+import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.minecrafttest.main.Version.MessageBuilder;
 
 import java.util.ArrayList;
@@ -36,6 +43,47 @@ public class ModernMessageBuilder implements MessageBuilder {
         } else {
             Bukkit.getConsoleSender().sendMessage("Component is not built yet.");
         }
+    }
+
+    @Override
+    public void senderMessage(CommandSender sender){
+        if (component != null) {
+            sender.sendMessage(component);
+        } else {
+            sender.sendMessage("Component is not built yet.");
+        }
+    }
+
+    @Override
+    public void applyMeta(ItemMeta meta, String name, Player player) {
+        if (!name.isEmpty()) {
+            LegacyComponentSerializer serializer = LegacyComponentSerializer.builder()
+                    .character('&')
+                    .build();
+            Component displayName = serializer.deserialize(PlaceholderAPI.setPlaceholders(player, name));
+            displayName = displayName.decoration(TextDecoration.ITALIC, false);
+            meta.displayName(displayName);
+        }
+    }
+
+    @Override
+    public void applyLore(ItemMeta meta, List<String> loreList, Player player) {
+        List<Component> lore = new ArrayList<>();
+        LegacyComponentSerializer serializer = LegacyComponentSerializer.builder()
+                .character('&')
+                .build();
+        for (String loreLine : loreList) {
+            Component formattedLoreLine = serializer.deserialize(PlaceholderAPI.setPlaceholders(player, loreLine));
+            formattedLoreLine = formattedLoreLine.decoration(TextDecoration.ITALIC, false);
+            lore.add(formattedLoreLine);
+        }
+        meta.lore(lore);
+    }
+
+    @Override
+    public void sendActionBar(Player player, String message, int red, int green, int blue) {
+        Component actionBar = Component.text(message).color(TextColor.color(red, green, blue));
+        player.sendActionBar(actionBar);
     }
 
     private NamedTextColor convertColor(ColorText colorText) {

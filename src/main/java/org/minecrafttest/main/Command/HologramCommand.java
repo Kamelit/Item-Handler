@@ -1,7 +1,5 @@
 package org.minecrafttest.main.Command;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -11,6 +9,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.minecrafttest.main.Hologram.ScoresHologram.HologramScoresParkour;
 import org.minecrafttest.main.ItemHandler;
+import org.minecrafttest.main.Version.Component.ColorText;
+import org.minecrafttest.main.Version.MessageBuilder;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,11 +23,11 @@ public class HologramCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
         if (!(commandSender instanceof Player)){
-            Component Message = Component.text()
-                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.DARK_GRAY))
-                    .append(Component.text("Only players can Execute This Command ", NamedTextColor.DARK_GRAY))
+            MessageBuilder onlyPlayersMessageBuilder = MessageBuilder.createMessageBuilder();
+            onlyPlayersMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.DARK_GRAY)
+                    .append("Only players can execute this command ", ColorText.DARK_GRAY)
                     .build();
-            commandSender.sendMessage(Message);
+            onlyPlayersMessageBuilder.senderMessage(commandSender);
             return false;
         }
 

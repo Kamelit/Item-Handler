@@ -15,7 +15,6 @@ public class ArmorStandData {
         this.location = location;
     }
 
-
     public UUID getUuid() {
         return uuid;
     }

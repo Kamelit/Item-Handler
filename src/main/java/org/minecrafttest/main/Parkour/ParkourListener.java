@@ -23,7 +23,6 @@ public class ParkourListener implements Listener {
         Player player = event.getPlayer();
         Location location = player.getLocation();
         String parkourName = plugin.getParkour().getPlayerParkour(player);
-
         if (parkourName != null && plugin.getChronometer().isRunChronometer(player)) {
             List<Checkpoint> checkpoints = plugin.getParkour().getCheckpointsMap().get(parkourName);
             if (checkpoints != null) {
@@ -36,16 +35,14 @@ public class ParkourListener implements Listener {
                 }
             }
         }
-
     }
 
     @EventHandler
     public void onPlayerFall(PlayerMoveEvent event) {
         Player player = event.getPlayer();
-        Location location = player.getLocation();
-
         if (plugin.getChronometer().isRunChronometer(player)) {
-            if (hasPlayerFallen(location, player)) {
+            Location location = player.getLocation();
+            if (hasPlayerPositionCorrect(location, player)) {
                 Checkpoint lastCheckpoint = playerLastCheckpoint.get(player);
                 if (lastCheckpoint != null) {
                     Location lastLocation = lastCheckpoint.getLocation();
@@ -69,9 +66,12 @@ public class ParkourListener implements Listener {
                 checkpointLocation.getBlockZ() == playerLocation.getBlockZ();
     }
 
-    private boolean hasPlayerFallen(Location location, Player player) {
+    private boolean hasPlayerPositionCorrect(Location location, Player player) {
         Checkpoint lastCheckpoint = playerLastCheckpoint.get(player);
-        return lastCheckpoint != null && location.getY() <= lastCheckpoint.getMinY();
+        if (lastCheckpoint != null) {
+            return location.getY() <= lastCheckpoint.getMinY() || location.getY() >= lastCheckpoint.getMaxY();
+        }
+        return false;
     }
 
 }

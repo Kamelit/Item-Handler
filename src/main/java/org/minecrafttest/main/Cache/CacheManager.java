@@ -4,12 +4,11 @@ package org.minecrafttest.main.Cache;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.minecrafttest.main.Cache.types.ArmorStand.ArmorStandData;
 import org.minecrafttest.main.Cache.types.ArmorStand.ArmorStandDataTypeAdapter;
+import org.minecrafttest.main.Version.Component.ColorText;
+import org.minecrafttest.main.Version.MessageBuilder;
 
 import java.io.File;
 import java.io.FileReader;
@@ -57,12 +56,13 @@ public class CacheManager {
     public void saveCache() {
         try (FileWriter writer = new FileWriter(cacheFile)) {
             gson.toJson(cache, writer);
-            Component message = Component.text()
-                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.DARK_AQUA))
-                    .append(Component.text("[CacheManager] ", NamedTextColor.GOLD))
-                    .append(Component.text("Cache saved or update file: "+ FILE_NAME))
+            MessageBuilder messageBuilder = MessageBuilder.createMessageBuilder();
+
+            messageBuilder.append("[" + plugin.getName() + "] ", ColorText.DARK_AQUA)
+                    .append("[CacheManager] ", ColorText.GOLD)
+                    .append("Cache saved or update file: " + FILE_NAME)
                     .build();
-            Bukkit.getConsoleSender().sendMessage(message);
+            messageBuilder.BukkitSender();
         } catch (IOException e) {
             logger.severe(e.getMessage());
         }
@@ -83,20 +83,22 @@ public class CacheManager {
             if (!cacheFile.delete()) {
                 logger.severe("Failed to delete cache file");
             }
-            Component message = Component.text()
-                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.DARK_AQUA))
-                    .append(Component.text("[CacheManager] ", NamedTextColor.GOLD))
-                    .append(Component.text("Cache remove: "+ FILE_NAME))
+
+            MessageBuilder messageBuilder = MessageBuilder.createMessageBuilder();
+            messageBuilder.append("[" + plugin.getName() + "] ", ColorText.DARK_AQUA)
+                    .append("[CacheManager] ", ColorText.GOLD)
+                    .append("Cache remove: " + FILE_NAME)
                     .build();
-            Bukkit.getConsoleSender().sendMessage(message);
+            messageBuilder.BukkitSender();
         } else {
             saveCache();
-            Component message = Component.text()
-                    .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.DARK_AQUA))
-                    .append(Component.text("[CacheManager] ", NamedTextColor.GOLD))
-                    .append(Component.text("Cache remove tree "+ key))
+
+            MessageBuilder messageBuilder = MessageBuilder.createMessageBuilder();
+            messageBuilder.append("[" + plugin.getName() + "] ", ColorText.DARK_AQUA)
+                    .append("[CacheManager] ", ColorText.GOLD)
+                    .append("Cache remove tree " + key)
                     .build();
-            Bukkit.getConsoleSender().sendMessage(message);
+            messageBuilder.BukkitSender();
         }
     }
 }

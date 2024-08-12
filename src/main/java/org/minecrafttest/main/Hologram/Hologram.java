@@ -1,8 +1,5 @@
 package org.minecrafttest.main.Hologram;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -15,6 +12,10 @@ import org.minecrafttest.main.Cache.CacheManager;
 import org.minecrafttest.main.Cache.types.ArmorStand.ArmorStandData;
 import org.minecrafttest.main.Database.Database;
 import org.minecrafttest.main.ItemHandler;
+import org.minecrafttest.main.Version.SchedulerAdapter;
+import org.minecrafttest.main.Version.ArmorBuilder;
+import org.minecrafttest.main.Version.Component.ColorText;
+import org.minecrafttest.main.Version.MessageBuilder;
 
 import java.io.File;
 import java.util.*;
@@ -22,9 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Hologram {
 
-    private final LegacyComponentSerializer serializer = LegacyComponentSerializer.builder()
-            .character('&')
-            .build();
+    private final ArmorBuilder armorBuilder = ArmorBuilder.createArmorBuilder().SerializerCodesColor('&');
     private final ItemHandler plugin = ItemHandler.getPlugin();
     private final YamlConfiguration yamlconfiguration = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "hologram/hologram.yml"));
     public final double verticalSpaces = yamlconfiguration.getDouble("config.space", 0.50);
@@ -41,29 +40,35 @@ public class Hologram {
 
         AtomicInteger counter = new AtomicInteger(0);
 
-        data.ifPresent(cache -> cache.forEach(armorStandData -> Bukkit.getRegionScheduler().runDelayed(plugin, armorStandData.getLocation(), task -> {
-            Entity entity = Bukkit.getEntity(armorStandData.getUuid());
+        //data.ifPresent(cache -> cache.forEach(armorStandData -> Bukkit.getRegionScheduler().runDelayed(plugin, armorStandData.getLocation(), task -> {},20L)));
+
+        data.ifPresent(cache -> cache.forEach(armorStandData ->  SchedulerAdapter.createSchedulerApi().RegionSchedulerRunDelayed(plugin, armorStandData.getLocation(), () -> {
+            Entity entity = getEntityByUUID(Objects.requireNonNull(Bukkit.getWorld(armorStandData.getLocation().getWorld().getName())), armorStandData.getUuid());
             if (entity != null && counter.get() == 0){
-                Component message1 = Component.text().append(Component.text("[" + plugin.getName() + "] --->", NamedTextColor.DARK_AQUA)).build();
-                Bukkit.getConsoleSender().sendMessage(message1);
+                MessageBuilder message1Builder = MessageBuilder.createMessageBuilder();
+                message1Builder.append("[" + plugin.getName() + "] --->", ColorText.DARK_AQUA)
+                        .build();
+                message1Builder.BukkitSender();
+
                 cache.forEach(action->{
-                    Component message = Component.text()
-                            .append(Component.text("[CacheManager] ", NamedTextColor.GOLD))
-                            .append(Component.text("UUID found in "+ action.getUuid()))
-                            .append(Component.text(" __cache--> ", NamedTextColor.RED))
-                            .append(Component.text(action.getLocation().toString(), NamedTextColor.YELLOW))
+                    MessageBuilder cacheMessageBuilder = MessageBuilder.createMessageBuilder();
+                    cacheMessageBuilder.append("[CacheManager] ", ColorText.GOLD)
+                            .append("UUID found in " + action.getUuid())
+                            .append(" __cache--> ", ColorText.RED)
+                            .append(action.getLocation().toString(), ColorText.YELLOW)
                             .build();
-                    Bukkit.getConsoleSender().sendMessage(message);
+                    cacheMessageBuilder.BukkitSender();
                 });
             }
             if (entity != null && Objects.requireNonNull(Bukkit.getWorld(armorStandData.getLocation().getWorld().getName())).getEntities().contains(entity)) {
                 entity.remove();
-                Component message = Component.text()
-                        .append(Component.text("[" + plugin.getName() + "] ", NamedTextColor.DARK_AQUA))
-                        .append(Component.text("[CacheManager] ", NamedTextColor.GOLD))
-                        .append(Component.text("Entity removed: "+ entity.getUniqueId()))
+                MessageBuilder cacheManagerMessageBuilder = MessageBuilder.createMessageBuilder();
+                cacheManagerMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.DARK_AQUA)
+                        .append("[CacheManager] ", ColorText.GOLD)
+                        .append("Entity removed: " + entity.getUniqueId())
                         .build();
-                Bukkit.getConsoleSender().sendMessage(message);
+                cacheManagerMessageBuilder.BukkitSender();
+
             }
             if (counter.get() == cache.size()-1) {
                 cacheManager.remove(METADATA_KEY);
@@ -71,7 +76,6 @@ public class Hologram {
             }
             counter.incrementAndGet();
         },20L)));
-
 
         final ConfigurationSection hologram = yamlconfiguration.getConfigurationSection("holograms");
         if (hologram == null) return;
@@ -118,7 +122,8 @@ public class Hologram {
         }
         for (String line : linesText) {
             final int value = i;
-            Bukkit.getRegionScheduler().runDelayed(plugin, location, t -> {
+
+            SchedulerAdapter.createSchedulerApi().RegionSchedulerRunDelayed(plugin, location, ()->{
                 if (__packets && value == linesText.size() - 1) {
                     Location local = location.clone();
                     local.subtract(0, verticalSpaces * (linesText.size()+1) , 0);
@@ -128,11 +133,9 @@ public class Hologram {
                 ArmorStand armorStand = world.spawn(location, ArmorStand.class);
                 armorStand.setVisible(false);
                 armorStand.setGravity(false);
-                armorStand.setInvisible(true);
+                //armorStand.setInvisible(true);
                 armorStand.setMarker(true);
-                Component text = serializer.deserialize(line);
-                armorStand.customName(text);
-                armorStand.setCustomNameVisible(true);
+                armorBuilder.CustomNameArmor(armorStand, line);
                 armorStand.setMetadata(METADATA_KEY, new FixedMetadataValue(plugin, true));
                 temp.add(new ArmorStandData(armorStand.getUniqueId(), armorStand.getEntityId(), armorStand.getLocation()));
                 location.subtract(0, verticalSpaces, 0);
@@ -140,8 +143,18 @@ public class Hologram {
                     cacheManager.put(METADATA_KEY, temp);
                 }
             }, 40L);
+            //Bukkit.getRegionScheduler().runDelayed(plugin, location, t -> {}, 40L);
             i++;
         }
+    }
+
+    public Entity getEntityByUUID(World world, UUID uuid) {
+        for (Entity entity : world.getEntities()) {
+            if (entity.getUniqueId().equals(uuid)) {
+                return entity;
+            }
+        }
+        return null;
     }
 
     public List<Location> getLocations (){

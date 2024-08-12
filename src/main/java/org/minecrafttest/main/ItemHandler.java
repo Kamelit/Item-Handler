@@ -1,6 +1,5 @@
 package org.minecrafttest.main;
 
-
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -41,6 +40,7 @@ public class ItemHandler extends JavaPlugin {
 
     @Override
     public void onEnable() {
+
         instance = this;
         pluginConfig = new Config();
         pluginConfig.loadConfig();
@@ -78,7 +78,6 @@ public class ItemHandler extends JavaPlugin {
         messageBuilder.append("[" + this.getName() + "] ", ColorText.GREEN)
                 .append("Load: ")
                 .append("Ok", ColorText.GREEN).build();
-
         messageBuilder.BukkitSender();
 
     }

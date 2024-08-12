@@ -10,14 +10,15 @@ public class Checkpoint {
     private final String map;
     private final String id;
     private final Location location;
-    private final int minY;
+    private final int minY, maxY;
     private final HashMap<String, Set<Player>> players;
 
-    public Checkpoint(String map, String id, Location location, int minY) {
+    public Checkpoint(String map, String id, Location location, int minY, int maxY) {
         this.map = map;
         this.id = id;
         this.location = location;
         this.minY = minY;
+        this.maxY = maxY;
         this.players = new HashMap<>();
     }
 
@@ -31,6 +32,10 @@ public class Checkpoint {
 
     public int getMinY() {
         return minY;
+    }
+
+    public int getMaxY(){
+        return maxY;
     }
 
     public HashMap<String, Set<Player>> getPlayers() {

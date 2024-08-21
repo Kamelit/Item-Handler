@@ -4,10 +4,10 @@ import org.bukkit.Location;
 
 import java.util.UUID;
 
-public class ArmorStandData {
+public final class ArmorStandData {
     private final UUID uuid;
     private final int id;
-    private final Location location;
+    private Location location;
 
     public ArmorStandData(UUID uuid, int id, Location location) {
         this.uuid = uuid;
@@ -25,5 +25,9 @@ public class ArmorStandData {
 
     public Location getLocation() {
         return location;
+    }
+
+    public void setLocation(Location newLocation) {
+        this.location = newLocation;
     }
 }

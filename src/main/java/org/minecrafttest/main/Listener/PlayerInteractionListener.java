@@ -40,8 +40,6 @@ import java.util.stream.Collectors;
 //Listener
 public class PlayerInteractionListener implements Listener {
     //Only Class
-
-
     private final ItemHandler plugin = ItemHandler.getPlugin();
     private final static String key1 = "set_drop";
     private final static String key2_all = "command_onclick";
@@ -436,12 +434,12 @@ public class PlayerInteractionListener implements Listener {
         }
     }
 
-    @EventHandler
+    /*@EventHandler
     public void onPlayerSwapHandItems(PlayerSwapHandItemsEvent event) {
         if (!plugin.getCustomConfig().getChangeHand()) {
             event.setCancelled(true);
         }
-    }
+    }*/
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {

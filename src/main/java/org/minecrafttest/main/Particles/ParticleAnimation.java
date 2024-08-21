@@ -117,7 +117,7 @@ public class ParticleAnimation {
 
 
     public void BeautifulCheckPoints(String key, List<Checkpoint> checkpoints) {
-        Consumer<ScheduledTask> task = scheduledTask -> {
+            Consumer<ScheduledTask> task = scheduledTask -> {
             Set<Player> playerInChronometer = plugin.getChronometer().getPlayersInChronometer();
             if (playerInChronometer.isEmpty()) {
                 tasksParticles.remove(key);

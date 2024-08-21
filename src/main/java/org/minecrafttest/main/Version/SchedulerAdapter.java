@@ -12,6 +12,7 @@ public interface SchedulerAdapter {
     void AsynchronousRunAtFixedRate(JavaPlugin plugin, Runnable runnable, long initialDelay, long period, TimeUnit timeUnit);
     void AsynchronousRunDelayed(JavaPlugin plugin, Runnable runnable, long delay, TimeUnit timeUnit);
     void RegionSchedulerRunDelayed(JavaPlugin plugin, Location location, Runnable runnable, long delayTicks);
+    void RegionSchedulerExecute(JavaPlugin plugin, Location location, Runnable runnable);
     void cancel();
 
     static SchedulerAdapter createSchedulerApi(){

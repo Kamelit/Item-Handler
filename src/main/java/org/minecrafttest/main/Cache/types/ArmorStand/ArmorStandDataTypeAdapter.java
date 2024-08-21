@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.UUID;
 
-public class ArmorStandDataTypeAdapter extends TypeAdapter<ArmorStandData> {
+public final class ArmorStandDataTypeAdapter extends TypeAdapter<ArmorStandData> {
 
     @Override
     public void write(JsonWriter out, ArmorStandData data) throws IOException {

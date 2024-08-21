@@ -97,8 +97,6 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             return true;
         }
 
-
-
         if (args[0].equalsIgnoreCase("Chronometer") && args[1].equalsIgnoreCase("restart") ){
             if (plugin.getChronometer().isRunChronometer(player)) plugin.getChronometer().stopChronometer(player);
             plugin.getChronometer().startChronometer(player, 5,0);
@@ -191,7 +189,6 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                     z = targetPlayer.getLocation().getBlockZ() + 0.5;
                     if (args.length >= 6){
                         String nameWorld = args[4];
-
                         final int index = 5;
                         if (registerEventByCommand(sender, args, nameWorld, index)) return true;
                     }else {
@@ -413,7 +410,6 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
                             .append("Incorrect Syntax in > \" ", ColorText.RED)
                             .build();
                     incorrectSyntaxMessageBuilder.senderMessage(sender);
-
                 }
                 return true;
             }
@@ -542,6 +538,10 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (args[0].equalsIgnoreCase("parkour") && args[1].equalsIgnoreCase("teleport_last_checkpoint")){
+            player.teleportAsync(plugin.getParkour().GetCheckpointInParkour());
+        }
+
         if (args.length > 3 && args[0].equalsIgnoreCase("register") && args[1].equalsIgnoreCase("parkour") && args[2].equalsIgnoreCase("checkpoint")){
             if (args.length > 4 && plugin.getParkour().parkourConfiguration.contains(args[3])){
                 int index = 4;
@@ -645,7 +645,6 @@ public class GameCommandExecutor implements CommandExecutor, TabCompleter {
         errorMessageBuilder.senderMessage(sender);
         return false;
     }
-
 
 
     private boolean registerEventByCommand(@NotNull CommandSender sender, String[] args, String nameWorld, int index) {

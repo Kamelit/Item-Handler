@@ -53,6 +53,7 @@ public class ParkourListener implements Listener {
                     float pitch = player.getLocation().getPitch();
                     lastLocation.setYaw(yaw);
                     lastLocation.setPitch(pitch);
+                    plugin.getParkour().SetCheckpointInParkour(lastLocation);
                     player.teleportAsync(lastLocation);
                 }
             }
@@ -73,5 +74,6 @@ public class ParkourListener implements Listener {
         }
         return false;
     }
+
 
 }

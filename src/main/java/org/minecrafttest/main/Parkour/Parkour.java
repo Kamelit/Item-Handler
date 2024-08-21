@@ -21,14 +21,16 @@ public class Parkour {
     private final ItemHandler plugin = ItemHandler.getPlugin();
     private final Config config = plugin.getCustomConfig();
     private final File file = new File(plugin.getDataFolder(),"parkour/parkour.yml");
-    public YamlConfiguration parkourConfiguration = YamlConfiguration.loadConfiguration(file);
+    public YamlConfiguration parkourConfiguration = YamlConfiguration.loadConfiguration(file) ;
 
     private final Map<String, List<Checkpoint>> checkpointsMap = new HashMap<>();
     private final Map<Player, Checkpoint> playerLastCheckpoint = new HashMap<>();
     private final Map<String, Set<Player>> playerParkourMap = new HashMap<>();
     private final Set<Player> players = new HashSet<>();
+    private Location teleportation;
 
     public void loadCheckpoints() {
+        parkourConfiguration = YamlConfiguration.loadConfiguration(file);
         for (String path : parkourConfiguration.getKeys(false)) {
             ConfigurationSection config = parkourConfiguration.getConfigurationSection(path);
             List<Checkpoint> checkpoints = new ArrayList<>();
@@ -160,4 +162,11 @@ public class Parkour {
             }
         }
     }
+
+    public void SetCheckpointInParkour(Location location){
+        teleportation = location;
+    }
+
+    public Location GetCheckpointInParkour(){ return teleportation;}
+
 }

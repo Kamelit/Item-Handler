@@ -10,10 +10,12 @@ import org.minecrafttest.main.Database.Database;
 import org.minecrafttest.main.Hologram.HoloListener;
 import org.minecrafttest.main.Hologram.Hologram;
 import org.minecrafttest.main.Listener.PlayerInteractionListener;
+import org.minecrafttest.main.Listener.PlayerInteractionListenerVersion;
 import org.minecrafttest.main.Parkour.Parkour;
 import org.minecrafttest.main.Parkour.ParkourListener;
 import org.minecrafttest.main.Parkour.Scores.Score;
 import org.minecrafttest.main.Parkour.Scores.ScoreListener;
+import org.minecrafttest.main.Version.APICompatibility;
 import org.minecrafttest.main.Version.Component.ColorText;
 import org.minecrafttest.main.Version.MessageBuilder;
 import org.minecrafttest.main.Watches.Chronometer;
@@ -25,7 +27,7 @@ import java.util.List;
 import java.util.Objects;
 
 //ItemHandler
-public class ItemHandler extends JavaPlugin {
+public final class ItemHandler extends JavaPlugin {
     private static ItemHandler instance;
     private Config pluginConfig;
     private PlayerInteractionListener listener;
@@ -59,9 +61,13 @@ public class ItemHandler extends JavaPlugin {
         Bukkit.getServer().getPluginManager().registerEvents(scoreListener, instance);
         Bukkit.getServer().getPluginManager().registerEvents(new ParkourListener(), instance);
         Bukkit.getServer().getPluginManager().registerEvents(new ParticleListener(), instance);
-        Bukkit.getServer().getPluginManager().registerEvents(new ScoreListener(), instance);
+
         Bukkit.getServer().getPluginManager().registerEvents(new HoloListener(), instance);
         Bukkit.getServer().getPluginManager().registerEvents(listener, instance);
+
+        if (APICompatibility.isSwapHands()){
+            Bukkit.getServer().getPluginManager().registerEvents(new PlayerInteractionListenerVersion(), instance);
+        }
 
         Objects.requireNonNull(getCommand("hologram")).setExecutor(new HologramCommand());
 

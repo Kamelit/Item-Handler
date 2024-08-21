@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 //Meta
-public class MaterialMetadata {
+public final class MaterialMetadata {
     private final String material;
     private final String quantity;
     private final String name;

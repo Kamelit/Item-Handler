@@ -28,6 +28,11 @@ public class FoliaSchedulerAdapter implements SchedulerAdapter {
     }
 
     @Override
+    public void RegionSchedulerExecute(JavaPlugin plugin, Location location, Runnable runnable) {
+        Bukkit.getRegionScheduler().execute(plugin, location, runnable);
+    }
+
+    @Override
     public void cancel() {
         scheduledTask.cancel();
     }

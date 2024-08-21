@@ -30,6 +30,11 @@ public class PaperSchedulerAdapter implements SchedulerAdapter {
     }
 
     @Override
+    public void RegionSchedulerExecute(JavaPlugin plugin, Location location, Runnable runnable) {
+        runnable.run();
+    }
+
+    @Override
     public void cancel() {
         task.cancel();
     }

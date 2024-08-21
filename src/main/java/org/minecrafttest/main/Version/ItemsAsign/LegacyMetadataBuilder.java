@@ -11,7 +11,7 @@ public class LegacyMetadataBuilder implements MetadataBuilder {
 
     @Override
     public MetadataBuilder getPlugin(JavaPlugin plugin) {
-        return null;
+        return this;
     }
 
     @Override

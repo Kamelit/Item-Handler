@@ -7,10 +7,11 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
-import org.bukkit.metadata.FixedMetadataValue;
 import org.minecrafttest.main.Cache.CacheManager;
 import org.minecrafttest.main.Cache.types.ArmorStand.ArmorStandData;
+import org.minecrafttest.main.Config.Config;
 import org.minecrafttest.main.Database.Database;
+import org.minecrafttest.main.Hologram.ScoresHologram.Packets.CustomHologram;
 import org.minecrafttest.main.ItemHandler;
 import org.minecrafttest.main.Version.SchedulerAdapter;
 import org.minecrafttest.main.Version.ArmorBuilder;
@@ -25,63 +26,65 @@ public class Hologram {
 
     private final ArmorBuilder armorBuilder = ArmorBuilder.createArmorBuilder().SerializerCodesColor('&');
     private final ItemHandler plugin = ItemHandler.getPlugin();
-    private final YamlConfiguration yamlconfiguration = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), "hologram/hologram.yml"));
+    private final File file = new File(plugin.getDataFolder(), "hologram/hologram.yml");
+    public final YamlConfiguration yamlconfiguration = YamlConfiguration.loadConfiguration(file);
     public final double verticalSpaces = yamlconfiguration.getDouble("config.space", 0.50);
     private final Database database = plugin.getDatabase();
-    private static final String METADATA_KEY = "hologram";
+    //private static final String METADATA_KEY = "hologram";
 
     private final CacheManager cacheManager = new CacheManager(plugin);
-    private final List<ArmorStandData> temp = new ArrayList<>();
-    private final List<Location> locations = new ArrayList<>();
+    private final HashMap<String, List<ArmorStandData>> temp = new HashMap<>();
+    private final Config config = plugin.getCustomConfig();
+    public final CustomHologram customHologram = new CustomHologram();
 
     public void init() {
 
-        Optional<List<ArmorStandData>> data = Optional.ofNullable(cacheManager.get(METADATA_KEY));
-
-        AtomicInteger counter = new AtomicInteger(0);
-
-        //data.ifPresent(cache -> cache.forEach(armorStandData -> Bukkit.getRegionScheduler().runDelayed(plugin, armorStandData.getLocation(), task -> {},20L)));
-
-        data.ifPresent(cache -> cache.forEach(armorStandData ->  SchedulerAdapter.createSchedulerApi().RegionSchedulerRunDelayed(plugin, armorStandData.getLocation(), () -> {
-            Entity entity = getEntityByUUID(Objects.requireNonNull(Bukkit.getWorld(armorStandData.getLocation().getWorld().getName())), armorStandData.getUuid());
-            if (entity != null && counter.get() == 0){
-                MessageBuilder message1Builder = MessageBuilder.createMessageBuilder();
-                message1Builder.append("[" + plugin.getName() + "] --->", ColorText.DARK_AQUA)
-                        .build();
-                message1Builder.BukkitSender();
-
-                cache.forEach(action->{
-                    MessageBuilder cacheMessageBuilder = MessageBuilder.createMessageBuilder();
-                    cacheMessageBuilder.append("[CacheManager] ", ColorText.GOLD)
-                            .append("UUID found in " + action.getUuid())
-                            .append(" __cache--> ", ColorText.RED)
-                            .append(action.getLocation().toString(), ColorText.YELLOW)
-                            .build();
-                    cacheMessageBuilder.BukkitSender();
-                });
-            }
-            if (entity != null && Objects.requireNonNull(Bukkit.getWorld(armorStandData.getLocation().getWorld().getName())).getEntities().contains(entity)) {
-                entity.remove();
-                MessageBuilder cacheManagerMessageBuilder = MessageBuilder.createMessageBuilder();
-                cacheManagerMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.DARK_AQUA)
-                        .append("[CacheManager] ", ColorText.GOLD)
-                        .append("Entity removed: " + entity.getUniqueId())
-                        .build();
-                cacheManagerMessageBuilder.BukkitSender();
-
-            }
-            if (counter.get() == cache.size()-1) {
-                cacheManager.remove(METADATA_KEY);
-                temp.clear();
-            }
-            counter.incrementAndGet();
-        },20L)));
-
         final ConfigurationSection hologram = yamlconfiguration.getConfigurationSection("holograms");
         if (hologram == null) return;
+        hologram.getKeys(false).forEach(METADATA_KEY->{
+            System.out.println(METADATA_KEY);
+            Optional<List<ArmorStandData>> data = Optional.ofNullable(cacheManager.get(METADATA_KEY));
 
-        for (String path : hologram.getKeys(false)) {
-            ConfigurationSection config = yamlconfiguration.getConfigurationSection("holograms." + path);
+            AtomicInteger counter = new AtomicInteger(0);
+
+            //data.ifPresent(cache -> cache.forEach(armorStandData -> Bukkit.getRegionScheduler().runDelayed(plugin, armorStandData.getLocation(), task -> {},20L)));
+
+            data.ifPresent(cache -> cache.forEach(armorStandData ->  SchedulerAdapter.createSchedulerApi().RegionSchedulerRunDelayed(plugin, armorStandData.getLocation(), () -> {
+                Entity entity = getEntityByUUID(Objects.requireNonNull(Bukkit.getWorld(armorStandData.getLocation().getWorld().getName())), armorStandData.getUuid());
+                if (entity != null && counter.get() == 0){
+                    MessageBuilder message1Builder = MessageBuilder.createMessageBuilder();
+                    message1Builder.append("[" + plugin.getName() + "] --->", ColorText.DARK_AQUA)
+                            .build();
+                    message1Builder.BukkitSender();
+
+                    cache.forEach(action->{
+                        MessageBuilder cacheMessageBuilder = MessageBuilder.createMessageBuilder();
+                        cacheMessageBuilder.append("[CacheManager] ", ColorText.GOLD)
+                                .append("UUID found in " + action.getUuid())
+                                .append(" __cache--> ", ColorText.RED)
+                                .append(action.getLocation().toString(), ColorText.YELLOW)
+                                .build();
+                        cacheMessageBuilder.BukkitSender();
+                    });
+                }
+                if (entity != null && Objects.requireNonNull(Bukkit.getWorld(armorStandData.getLocation().getWorld().getName())).getEntities().contains(entity)) {
+                    entity.remove();
+                    MessageBuilder cacheManagerMessageBuilder = MessageBuilder.createMessageBuilder();
+                    cacheManagerMessageBuilder.append("[" + plugin.getName() + "] ", ColorText.DARK_AQUA)
+                            .append("[CacheManager] ", ColorText.GOLD)
+                            .append("Entity removed: " + entity.getUniqueId())
+                            .build();
+                    cacheManagerMessageBuilder.BukkitSender();
+
+                }
+                if (counter.get() == cache.size()-1) {
+                    cacheManager.remove(METADATA_KEY);
+                    temp.clear();
+                }
+                counter.incrementAndGet();
+            },20L)));
+
+            ConfigurationSection config = hologram.getConfigurationSection(METADATA_KEY);
             if (config == null) return;
 
             String worldName = config.getString("world");
@@ -108,10 +111,11 @@ public class Hologram {
 
             final Location location = new Location(world, x, z, y);
 
-            spawn(location, text, path, end_text_down.isPresent());
-        }
-    }
+            spawn(location, text, METADATA_KEY, end_text_down.isPresent());
+        });
 
+
+    }
     public void spawn(final Location location, List<String> linesText, String path, boolean endLine) {
         int i = 0;
         boolean __packets = yamlconfiguration.getBoolean("holograms." + path + ".__custom__name_score", false);
@@ -127,7 +131,7 @@ public class Hologram {
                 if (__packets && value == linesText.size() - 1) {
                     Location local = location.clone();
                     local.subtract(0, verticalSpaces * (linesText.size()+1) , 0);
-                    locations.add(local);
+                    customHologram.keyLocation(path,local);
                 }
                 if (endLine && value == linesText.size() - 1) location.subtract(0, verticalSpaces, 0);
                 ArmorStand armorStand = world.spawn(location, ArmorStand.class);
@@ -136,11 +140,10 @@ public class Hologram {
                 //armorStand.setInvisible(true);
                 armorStand.setMarker(true);
                 armorBuilder.CustomNameArmor(armorStand, line);
-                armorStand.setMetadata(METADATA_KEY, new FixedMetadataValue(plugin, true));
-                temp.add(new ArmorStandData(armorStand.getUniqueId(), armorStand.getEntityId(), armorStand.getLocation()));
+                temp.computeIfAbsent(path, k -> new ArrayList<>()).add(new ArmorStandData(armorStand.getUniqueId(), armorStand.getEntityId(), armorStand.getLocation()));
                 location.subtract(0, verticalSpaces, 0);
                 if (value == linesText.size()-1){
-                    cacheManager.put(METADATA_KEY, temp);
+                    cacheManager.put(path, temp.get(path));
                 }
             }, 40L);
             //Bukkit.getRegionScheduler().runDelayed(plugin, location, t -> {}, 40L);
@@ -157,7 +160,56 @@ public class Hologram {
         return null;
     }
 
-    public List<Location> getLocations (){
-        return locations;
+    public void teleportingHologram(String key, Location newBaseLocation) {
+        List<ArmorStandData> armorStandDataList = cacheManager.get(key);
+        if (armorStandDataList == null) {
+            plugin.getLogger().warning("No holograms found for key: " + key);
+            return;
+        }
+
+        boolean __packets = yamlconfiguration.getBoolean("holograms." + key + ".__custom__name_score", false);
+        boolean endLine = Optional.ofNullable(yamlconfiguration.getString("holograms." + key + ".end_text_down")).isPresent();
+
+        if (__packets) newBaseLocation.add(0, (armorStandDataList.size() * verticalSpaces + 1), 0);
+        else newBaseLocation.add(0, (armorStandDataList.size() * verticalSpaces), 0);
+
+
+        final ConfigurationSection hologram = yamlconfiguration.getConfigurationSection("holograms." + key);
+        if (hologram != null) {
+            hologram.set("x", newBaseLocation.getX());
+            hologram.set("y", newBaseLocation.getY());
+            hologram.set("z", newBaseLocation.getZ());
+            hologram.set("world", newBaseLocation.getWorld().getName());
+            config.saveWorldConfig(yamlconfiguration, file);
+        }
+
+        int value = 0;
+        for (ArmorStandData armorStandData : armorStandDataList) {
+            final int val = value;
+            SchedulerAdapter.createSchedulerApi().RegionSchedulerExecute(plugin, armorStandData.getLocation(), () -> {
+
+                if (__packets && val == armorStandDataList.size() - 1) {
+                    Location updatedLocation = newBaseLocation.clone();
+                    updatedLocation.subtract(0, verticalSpaces * (armorStandDataList.size() + 1), 0);
+                    customHologram.UpdatePacketsLocation(key, updatedLocation);
+
+                }
+                if (endLine && val == armorStandDataList.size() - 1) newBaseLocation.subtract(0, verticalSpaces, 0);
+                
+                Entity entity = getEntityByUUID(armorStandData.getLocation().getWorld(), armorStandData.getUuid());
+                if (entity instanceof ArmorStand) {
+                    entity.teleportAsync(newBaseLocation);
+                }
+                armorStandData.setLocation(newBaseLocation);
+                newBaseLocation.subtract(0, verticalSpaces, 0);
+
+                if (val == armorStandDataList.size()-1){
+                    cacheManager.remove(key);
+                    cacheManager.put(key, armorStandDataList);
+                }
+            });
+            value++;
+        }
     }
+
 }

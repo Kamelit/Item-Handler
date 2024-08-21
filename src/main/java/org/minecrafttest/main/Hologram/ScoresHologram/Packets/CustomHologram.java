@@ -11,35 +11,32 @@ import com.comphenix.protocol.wrappers.WrappedWatchableObject;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.minecrafttest.main.Hologram.Hologram;
 import org.minecrafttest.main.ItemHandler;
 import org.minecrafttest.main.Version.ArmorBuilder;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public final class CustomHologram {
 
     private final ItemHandler plugin = ItemHandler.getPlugin();
-    private final Hologram hologram = plugin.getHologram();
     private final ArmorBuilder armorBuilder = ArmorBuilder.createArmorBuilder().SerializerCodesColor('&');
-
+    public final Map<Player, Map<String, Integer>> customPacketHologram = new HashMap<>();
+    private final Map<String, Location> locationMap = new HashMap<>();
 
     public void createCustomHologramUniquePlayer(Player player, String text) {
-        hologram.getLocations().forEach(
-                loc -> {
+        locationMap.forEach((name, loc) -> {
                     if (loc != null) {
                         final UUID armorStandUUID = UUID.randomUUID(); // unique UUID
                         final int entityId = (int) (Math.random() * Integer.MAX_VALUE);
-                        sendHologramPacket(player, loc, text, armorStandUUID, entityId);
+                        sendHologramPacket(name ,player, loc, text, armorStandUUID, entityId);
                     }
                 }
         );
     }
 
-    private void sendHologramPacket(Player player, Location location, String text, UUID uuid, int entityId) {
+    public void keyLocation(String key, Location location){locationMap.put(key, location);}
+
+    private void sendHologramPacket(String key , Player player, Location location, String text, UUID uuid, int entityId) {
         PacketContainer spawnPacket = ProtocolLibrary.getProtocolManager().createPacket(PacketType.Play.Server.SPAWN_ENTITY);
         spawnPacket.getModifier().writeDefaults();
         spawnPacket.getIntegers().write(0, entityId);// ID
@@ -51,6 +48,7 @@ public final class CustomHologram {
 
         try {
             ProtocolLibrary.getProtocolManager().sendServerPacket(player, spawnPacket);
+            customPacketHologram.computeIfAbsent(player, f -> new HashMap<>()).put(key, entityId);
         } catch (Exception e) {
             plugin.getLogger().severe(e.getMessage());
         }
@@ -91,4 +89,28 @@ public final class CustomHologram {
             plugin.getLogger().severe(e.getMessage());
         }
     }
+
+    public void UpdatePacketsLocation(String key , Location newLocation){
+        locationMap.put(key, newLocation);
+        customPacketHologram.forEach((player, hologramData)->{
+            int entityId = hologramData.get(key);
+            updatePacketLocation(player,entityId,newLocation);
+        });
+    }
+
+    private void updatePacketLocation(Player player, int entityId, Location newLocation) {
+        PacketContainer teleportPacket = ProtocolLibrary.getProtocolManager().createPacket(PacketType.Play.Server.ENTITY_TELEPORT);
+        teleportPacket.getIntegers().write(0, entityId); // Entity ID
+        teleportPacket.getDoubles().write(0, newLocation.getX()) // X
+                .write(1, newLocation.getY()) // Y
+                .write(2, newLocation.getZ()); // Z
+
+        try {
+            ProtocolLibrary.getProtocolManager().sendServerPacket(player, teleportPacket);
+        } catch (Exception e) {
+            plugin.getLogger().severe(e.getMessage());
+        }
+    }
+
+
 }

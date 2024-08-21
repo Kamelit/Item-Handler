@@ -75,7 +75,7 @@ public class CacheManager {
 
     public List<ArmorStandData> get(String key) {
         return cache.get(key);
-    }
+    }   
 
     public void remove(String key) {
         cache.remove(key);
